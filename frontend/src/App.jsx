@@ -1,10 +1,16 @@
+// Dependencies
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+// Import Pages
+import LandingPage from "./pages/LandingPage"
+
 function App() {
   return (
-    <div className="flex h-screen items-center justify-center">
-      <h1 className="text-4xl font-bold text-blue-600">
-        React + Tailwind is working!
-      </h1>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+      </Routes>
+    </Router>
   );
 }
 
