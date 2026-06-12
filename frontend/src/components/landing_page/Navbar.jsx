@@ -1,7 +1,7 @@
 import { BarChart3, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export default function Navbar({ scrollToSection }) {
+export default function Navbar({ scrollToSection, onLoginClick, onSignUpClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeId, setActiveId] = useState("home");
   const [scrolled, setScrolled] = useState(false);
@@ -58,7 +58,7 @@ export default function Navbar({ scrollToSection }) {
                 scrolled ? "text-xs" : "text-sm",
               ].join(" ")}
             >
-              PLPS — PH
+              PPS — PH
             </p>
             <p className="hidden text-[10px] font-medium uppercase tracking-widest text-slate-400 sm:block">
               Poverty Prediction System
@@ -97,18 +97,20 @@ export default function Navbar({ scrollToSection }) {
         {/* Right actions */}
         <div className="flex items-center gap-3">
           <button
-            className={[
-              "hidden rounded-md border border-black bg-white font-semibold text-black transition-all duration-300 hover:bg-[#001a4d] hover:text-white sm:block",
-              scrolled ? "px-4 py-1 text-xs" : "px-5 py-2 text-sm",
-            ].join(" ")}
+          onClick={onSignUpClick}
+          className={[
+            "hidden rounded-md border border-black bg-white font-semibold text-black transition-all duration-300 hover:bg-[#001a4d] hover:text-white sm:block",
+            scrolled ? "px-4 py-1 text-xs" : "px-5 py-2 text-sm",
+          ].join(" ")}
           >
             Get Started
           </button>
           <button
-            className={[
-              "hidden rounded-md bg-[#002366] font-semibold text-white transition-all duration-300 hover:bg-[#001a4d] sm:block",
-              scrolled ? "px-4 py-1 text-xs" : "px-5 py-2 text-sm",
-            ].join(" ")}
+          onClick={onLoginClick}
+          className={[
+            "hidden rounded-md bg-[#002366] font-semibold text-white transition-all duration-300 hover:bg-[#001a4d] sm:block",
+            scrolled ? "px-4 py-1 text-xs" : "px-5 py-2 text-sm",
+          ].join(" ")}
           >
             Login
           </button>
@@ -142,10 +144,14 @@ export default function Navbar({ scrollToSection }) {
               </button>
             ))}
             <div className="mt-3 border-t border-slate-100 pt-3">
-              <button className="w-full rounded-md bg-[#002366] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#001a4d]">
+              <button 
+              onClick={onLoginClick}
+              className="w-full rounded-md bg-[#002366] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#001a4d]">
                 Login
               </button>
-              <button className="mt-2 w-full rounded-md border border-[#002366] bg-white px-5 py-2.5 text-sm font-semibold text-[#002366] transition hover:bg-[#001a4d] hover:text-white">
+              <button 
+              onClick={onSignUpClick}
+              className="mt-2 w-full rounded-md border border-[#002366] bg-white px-5 py-2.5 text-sm font-semibold text-[#002366] transition hover:bg-[#001a4d] hover:text-white">
                 Get Started
               </button>
             </div>
