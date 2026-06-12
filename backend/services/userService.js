@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
+const admin = require("../configs/firebaseAdmin");
 
 // Password validation
 const validatePassword = (password) => {
@@ -9,17 +10,32 @@ const validatePassword = (password) => {
 
 const UserService = {
 
-  // Social login (Google / Facebook)
   socialLogin: async ({ name, email, uid }) => {
     let user = await User.findByEmail(email);
 
     if (!user) {
+      // generate unique username
+      const generateUsername = async (name) => {
+        const firstName = name.split(" ")[0].toLowerCase();
+        let username;
+        let exists = true;
+
+        while (exists) {
+          const randomNum = Math.floor(1000 + Math.random() * 9000);
+          username = `${firstName}${randomNum}`;
+          exists = await User.findByUsername(username);
+        }
+
+        return username;
+      };
+
       const insertId = await User.create({
         name,
         email,
-        username: email.split("@")[0],
-        password: uid,
-        address: "",
+        username: await generateUsername(name),
+        password: uid,   
+        uid: uid,        
+        address: "N/A",
         role: "user",
       });
 
@@ -216,6 +232,13 @@ const UserService = {
 
   // Delete user
   deleteUser: async (id) => {
+    const user = await User.findById(id);
+
+    // delete from firebase if has uid
+    if (user && user.uid) {
+      await admin.auth().deleteUser(user.uid);
+    }
+
     const affectedRows = await User.delete(id);
 
     if (affectedRows === 0) {

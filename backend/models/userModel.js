@@ -3,15 +3,14 @@ const bcrypt = require("bcrypt");
 
 const User = {
 
-  // Create User / Admin
-  create: async ({ name, username, password, email, address, role = "user" }) => {
+  create: async ({ name, username, password, email, address, role = "user", uid = null }) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
       `INSERT INTO users 
-      (name, username, password, email, address, role) 
-      VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, username, hashedPassword, email, address, role]
+      (name, username, password, email, address, role, uid) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, username, hashedPassword, email, address, role, uid]
     );
     return result.insertId;
   },
@@ -46,7 +45,7 @@ const User = {
   // Find by ID
   findById: async (id) => {
     const [rows] = await db.query(
-      "SELECT id, name, email, role, username, address FROM users WHERE id = ?",
+      "SELECT id, name, email, role, username, address, uid FROM users WHERE id = ?",
       [id]
     );
     return rows[0];
@@ -55,7 +54,7 @@ const User = {
   // Find user with password by ID
   findByIdWithPassword: async (id) => {
     const [rows] = await db.query(
-      "SELECT id, name, email, role, username, address, password FROM users WHERE id = ?",
+      "SELECT id, name, email, role, username, address, password, uid FROM users WHERE id = ?",
       [id]
     );
     return rows[0];

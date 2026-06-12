@@ -2,12 +2,13 @@ import { useState } from "react";
 import { X, AtSign, Lock, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+
 import { authService } from "../../services/authService";
 import { socialAuthService } from "../../services/socialAuthService";
 import { Alert } from "../common/Alert";
 import Loader from "../common/Loader";
 import ForgotPasswordModal from "../../pages/ForgotPass";
-
 const EMPTY_FORM = { username: "", password: "" };
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
@@ -17,6 +18,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
   const [alert, setAlert]               = useState(null);
   const [loading, setLoading]           = useState(false);
   const [showForgot, setShowForgot]     = useState(false);
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -43,10 +45,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
     }
     try {
       setLoading(true);
-      await authService.login(form);
+      const response = await authService.login(form);
       setAlert({ type: "success", message: "Login successful! Redirecting..." });
       resetForm();
-      setTimeout(() => onClose(), 1000);
+      setTimeout(() => {
+        onClose();
+        navigate("/user/dashboard");
+      }, 1000);
     } catch (err) {
       setAlert({
         type: "error",
@@ -64,11 +69,20 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
       await providerFn();
       setAlert({ type: "success", message: "Login successful! Redirecting..." });
       resetForm();
-      setTimeout(() => onClose(), 1000);
+      setTimeout(() => {
+        onClose();
+        navigate("/user/dashboard");
+      }, 1000);
     } catch (err) {
+      console.error(err);
+      let message = "Social login failed. Please try again.";
+      
+      if (err.code === "auth/account-exists-with-different-credential") {
+        message = "This email is already linked to a different login method. Please use your original login method.";
+      }
       setAlert({
         type: "error",
-        message: err.response?.data?.message || "Social login failed. Please try again.",
+        message: err.response?.data?.message || err.message || message,
       });
     } finally {
       setLoading(false);
