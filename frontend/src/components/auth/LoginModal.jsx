@@ -78,7 +78,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
       let message = "Social login failed. Please try again.";
       
       if (err.code === "auth/account-exists-with-different-credential") {
-        message = "This email is already linked to a different login method. Please use your original login method.";
+        message = "The email you used is already linked to a different login method. Please use your original login method.";
       }
       setAlert({
         type: "error",
