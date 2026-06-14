@@ -3,12 +3,13 @@ import { X, AtSign, Lock, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from "../../hooks/useAuth";
 import { authService } from "../../services/authService";
 import { socialAuthService } from "../../services/socialAuthService";
 import { Alert } from "../common/Alert";
 import Loader from "../common/Loader";
 import ForgotPasswordModal from "../../pages/ForgotPass";
+
 const EMPTY_FORM = { username: "", password: "" };
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
@@ -17,8 +18,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [alert, setAlert]               = useState(null);
   const [loading, setLoading]           = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null); // "google" | "facebook" | null
   const [showForgot, setShowForgot]     = useState(false);
   const navigate = useNavigate();
+  const { refetch } = useAuth();
 
   if (!isOpen) return null;
 
@@ -45,13 +48,11 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
     }
     try {
       setLoading(true);
-      const response = await authService.login(form);
-      setAlert({ type: "success", message: "Login successful! Redirecting..." });
+      await authService.login(form);
+      await refetch();
       resetForm();
-      setTimeout(() => {
-        onClose();
-        navigate("/user/dashboard");
-      }, 1000);
+      onClose();
+      navigate("/user/dashboard");
     } catch (err) {
       setAlert({
         type: "error",
@@ -62,38 +63,44 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
     }
   };
 
-  const handleSocialLogin = async (providerFn) => {
+  const handleSocialLogin = async (providerFn, provider) => {
     setAlert(null);
     try {
-      setLoading(true);
+      setSocialLoading(provider);
       await providerFn();
-      setAlert({ type: "success", message: "Login successful! Redirecting..." });
+      await refetch();
       resetForm();
-      setTimeout(() => {
-        onClose();
-        navigate("/user/dashboard");
-      }, 1000);
+      onClose();
+      navigate("/user/dashboard");
     } catch (err) {
-      console.error(err);
+      if (
+        err.code === "auth/popup-closed-by-user" ||
+        err.code === "auth/cancelled-popup-request" ||
+        err.code === "auth/popup-timeout" ||
+        err.code === "auth/user-cancelled"
+      ) {
+        setAlert({ type: "error", message: "Login cancelled. Please try again." });
+        return;
+      }
+
       let message = "Social login failed. Please try again.";
-      
       if (err.code === "auth/account-exists-with-different-credential") {
-        message = "The email you used is already linked to a different login method. Please use your original login method.";
+        message = "This email is already linked to a different login method.";
       }
       setAlert({
         type: "error",
         message: err.response?.data?.message || err.message || message,
       });
     } finally {
-      setLoading(false);
+      setSocialLoading(null);
     }
   };
 
+  const isAnyLoading = loading || !!socialLoading;
+
   return (
     <>
-      <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      >
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
         <div
@@ -111,7 +118,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
               </div>
               <button
                 onClick={handleClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                disabled={isAnyLoading}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -119,11 +127,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
 
             <div className="flex flex-col gap-4">
               {alert && (
-                <Alert
-                  type={alert.type}
-                  message={alert.message}
-                  onClose={() => setAlert(null)}
-                />
+                <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
               )}
 
               {/* Username */}
@@ -137,7 +141,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                     placeholder="Enter your username"
                     value={form.username}
                     onChange={handleChange}
-                    className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none"
+                    disabled={isAnyLoading}
+                    className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -153,12 +158,14 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                     placeholder="Enter your password"
                     value={form.password}
                     onChange={handleChange}
-                    className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none"
+                    disabled={isAnyLoading}
+                    className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-60"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((p) => !p)}
-                    className="text-slate-400 hover:text-slate-600 transition"
+                    disabled={isAnyLoading}
+                    className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -172,13 +179,15 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                     type="checkbox"
                     checked={remember}
                     onChange={(e) => setRemember(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded border-slate-300 accent-[#002366]"
+                    disabled={isAnyLoading}
+                    className="w-3.5 h-3.5 rounded border-slate-300 accent-[#002366] disabled:opacity-60"
                   />
                   <span className="text-xs text-slate-600">Remember me</span>
                 </label>
                 <button
                   onClick={() => setShowForgot(true)}
-                  className="text-xs font-medium text-[#002366] hover:underline"
+                  disabled={isAnyLoading}
+                  className="text-xs font-medium text-[#002366] hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Forgot password?
                 </button>
@@ -187,7 +196,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={isAnyLoading}
                 className="w-full h-11 rounded-xl bg-[#002366] text-white text-sm font-semibold hover:bg-[#001a4d] active:scale-[0.98] transition-all duration-150 shadow-md shadow-[#002366]/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
@@ -210,20 +219,38 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
               {/* Social */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => handleSocialLogin(socialAuthService.loginWithGoogle)}
-                  disabled={loading}
+                  onClick={() => handleSocialLogin(socialAuthService.loginWithGoogle, "google")}
+                  disabled={isAnyLoading}
                   className="h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center gap-2 text-xs font-medium text-slate-700 hover:border-[#002366]/40 hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <FcGoogle className="h-4 w-4" />
-                  Google
+                  {socialLoading === "google" ? (
+                    <>
+                      <Loader />
+                      <span>Signing in...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FcGoogle className="h-4 w-4" />
+                      Google
+                    </>
+                  )}
                 </button>
                 <button
-                  onClick={() => handleSocialLogin(socialAuthService.loginWithFacebook)}
-                  disabled={loading}
+                  onClick={() => handleSocialLogin(socialAuthService.loginWithFacebook, "facebook")}
+                  disabled={isAnyLoading}
                   className="h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center gap-2 text-xs font-medium text-slate-700 hover:border-[#002366]/40 hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <FaFacebook className="h-4 w-4 text-[#1877F2]" />
-                  Facebook
+                  {socialLoading === "facebook" ? (
+                    <>
+                      <Loader />
+                      <span>Signing in...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaFacebook className="h-4 w-4 text-[#1877F2]" />
+                      Facebook
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -231,7 +258,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                 Don't have an account?{" "}
                 <button
                   onClick={onSwitchToSignUp}
-                  className="font-semibold text-[#002366] hover:underline"
+                  disabled={isAnyLoading}
+                  className="font-semibold text-[#002366] hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Sign Up
                 </button>
@@ -241,10 +269,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
         </div>
       </div>
 
-      <ForgotPasswordModal
-        isOpen={showForgot}
-        onClose={() => setShowForgot(false)}
-      />
+      <ForgotPasswordModal isOpen={showForgot} onClose={() => setShowForgot(false)} />
     </>
   );
 }

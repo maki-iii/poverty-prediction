@@ -121,14 +121,14 @@ const UserService = {
     };
   },
 
-  // Login using username
-  login: async ({ username, password }) => {
+
+  login: async ({ username, password, expectedRole }) => {
     if (!username || !password) {
       throw new Error("Username and password are required");
     }
 
     const user = await User.findByUsername(username);
-    if (!user) {
+    if (!user || expectedRole && user.role !== expectedRole) {
       throw new Error("Invalid username or password");
     }
 

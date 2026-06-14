@@ -7,6 +7,8 @@ const verifyAdmin = require("../middlewares/adminMiddleware");
 // Public routes
 router.post("/register", UserController.register);
 router.post("/login", UserController.login);
+router.post("/login/user", UserController.userLogin);
+router.post("/login/admin", UserController.adminLogin);
 router.post("/social-login", UserController.socialLogin);
 
 // Protected routes (logged-in users)
@@ -26,6 +28,8 @@ router.put("/:id/change-password", verifyToken, UserController.changePassword);
 // Admin-only routes
 router.get("/", verifyToken, verifyAdmin, UserController.getAllUsers);
 router.delete("/:id", verifyToken, verifyAdmin, UserController.deleteUser);
+
+// Create user with role
 router.post("/create", verifyToken, verifyAdmin, UserController.createUser);
 
 module.exports = router;
