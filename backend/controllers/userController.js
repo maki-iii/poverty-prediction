@@ -67,14 +67,11 @@ const UserController = {
     }
   },
 
-  // Login user
+  // Generic login (keep this if used elsewhere, but remove the route)
   login: async (req, res) => {
     try {
       const { username, password } = req.body;
-      console.log("Login attempt:", username);
-
       const user = await UserService.login({ username, password });
-      console.log("UserService.login success:", user?.username);
 
       const token = jwt.sign(
         { id: user.id, role: user.role, username: user.username },
@@ -89,18 +86,79 @@ const UserController = {
         maxAge: 24 * 60 * 60 * 1000,
       });
 
-      return res.status(200).json({
-        message: "Login successful",
-        user,
-      });
+      return res.status(200).json({ message: "Login successful", user });
     } catch (error) {
-      console.error("LOGIN ERROR:", error);
-
       const isConnectionError =
         error.message.includes("ETIMEDOUT") ||
         error.message.includes("ECONNREFUSED");
 
       return res.status(isConnectionError ? 500 : 401).json({
+        message: error.message,
+      });
+    }
+  },
+
+  // User-only login
+  userLogin: async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      // expectedRole: "user" — admin credentials will be rejected
+      const user = await UserService.login({ username, password, expectedRole: "user" });
+
+      const token = jwt.sign(
+        { id: user.id, role: user.role, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      return res.status(200).json({ message: "Login successful", user });
+    } catch (error) {
+      const isConnectionError =
+        error.message.includes("ETIMEDOUT") ||
+        error.message.includes("ECONNREFUSED");
+
+      return res.status(isConnectionError ? 500 : 403).json({
+        message: error.message,
+      });
+    }
+  },
+
+  // Admin-only login
+  adminLogin: async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      // expectedRole: "admin" — user credentials will be rejected
+      const user = await UserService.login({ username, password, expectedRole: "admin" });
+
+      const token = jwt.sign(
+        { id: user.id, role: user.role, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      return res.status(200).json({ message: "Login successful", user });
+    } catch (error) {
+      const isConnectionError =
+        error.message.includes("ETIMEDOUT") ||
+        error.message.includes("ECONNREFUSED");
+
+      return res.status(isConnectionError ? 500 : 403).json({
         message: error.message,
       });
     }

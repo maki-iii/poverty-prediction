@@ -12,7 +12,7 @@ const EMPTY_FORM = {
   name: "", username: "", email: "", address: "", password: "", confirmPassword: "",
 };
 
-const Field = ({ label, icon: Icon, type = "text", placeholder, name, value, onChange }) => (
+const Field = ({ label, icon: Icon, type = "text", placeholder, name, value, onChange, disabled }) => (
   <div className="flex flex-col gap-1 min-w-0">
     <label className="text-xs font-semibold text-slate-700">{label}</label>
     <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 h-10 bg-slate-50 focus-within:bg-white focus-within:border-[#002366] focus-within:ring-2 focus-within:ring-[#002366]/10 transition-all min-w-0">
@@ -23,23 +23,27 @@ const Field = ({ label, icon: Icon, type = "text", placeholder, name, value, onC
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="flex-1 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none min-w-0"
+        disabled={disabled}
+        className="flex-1 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none min-w-0 disabled:opacity-60"
       />
     </div>
   </div>
 );
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [alert, setAlert] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [showPassword, setShowPassword]     = useState(false);
+  const [showConfirm, setShowConfirm]       = useState(false);
+  const [agreed, setAgreed]                 = useState(false);
+  const [alert, setAlert]                   = useState(null);
+  const [loading, setLoading]               = useState(false);
+  const [socialLoading, setSocialLoading]   = useState(null); // "google" | "facebook" | null
+  const [form, setForm]                     = useState(EMPTY_FORM);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showExitModal, setShowExitModal] = useState(false);
+  const [showExitModal, setShowExitModal]   = useState(false);
 
   if (!isOpen) return null;
+
+  const isAnyLoading = loading || !!socialLoading;
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -52,6 +56,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
   };
 
   const handleClose = () => {
+    if (isAnyLoading) return;
     const hasData = Object.values(form).some((v) => v.trim() !== "");
     if (hasData) {
       setShowExitModal(true);
@@ -91,7 +96,6 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
   const handleConfirmedSubmit = async () => {
     setShowConfirmModal(false);
     const { name, username, email, address, password } = form;
-
     try {
       setLoading(true);
       await authService.register({ name, username, email, address, password });
@@ -108,29 +112,9 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
     }
   };
 
-  const handleSocialLogin = async (providerFn) => {
-    setAlert(null);
-    try {
-      setLoading(true);
-      await providerFn();
-      setAlert({ type: "success", message: "Account ready! Redirecting..." });
-      resetForm();
-      setTimeout(() => onClose(), 1000);
-    } catch (err) {
-      setAlert({
-        type: "error",
-        message: err.response?.data?.message || "Social login failed. Please try again.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <>
-      <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      >
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
         <div
@@ -148,7 +132,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
               </div>
               <button
                 onClick={handleClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                disabled={isAnyLoading}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -156,20 +141,16 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
 
             <div className="flex flex-col gap-3">
               {alert && (
-                <Alert
-                  type={alert.type}
-                  message={alert.message}
-                  onClose={() => setAlert(null)}
-                />
+                <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Full Name" icon={User} placeholder="Full name" name="name" value={form.name} onChange={handleChange} />
-                <Field label="Username" icon={AtSign} placeholder="username" name="username" value={form.username} onChange={handleChange} />
+                <Field label="Full Name" icon={User} placeholder="Full name" name="name" value={form.name} onChange={handleChange} disabled={isAnyLoading} />
+                <Field label="Username" icon={AtSign} placeholder="username" name="username" value={form.username} onChange={handleChange} disabled={isAnyLoading} />
               </div>
 
-              <Field label="Email" icon={Mail} type="email" placeholder="your@email.com" name="email" value={form.email} onChange={handleChange} />
-              <Field label="Address" icon={MapPin} placeholder="City, Province" name="address" value={form.address} onChange={handleChange} />
+              <Field label="Email" icon={Mail} type="email" placeholder="your@email.com" name="email" value={form.email} onChange={handleChange} disabled={isAnyLoading} />
+              <Field label="Address" icon={MapPin} placeholder="City, Province" name="address" value={form.address} onChange={handleChange} disabled={isAnyLoading} />
 
               {/* Password */}
               <div className="flex flex-col gap-1">
@@ -182,9 +163,15 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                     placeholder="Create a password"
                     value={form.password}
                     onChange={handleChange}
-                    className="flex-1 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none"
+                    disabled={isAnyLoading}
+                    className="flex-1 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-60"
                   />
-                  <button type="button" onClick={() => setShowPassword((p) => !p)} className="text-slate-400 hover:text-slate-600 transition">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    disabled={isAnyLoading}
+                    className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40"
+                  >
                     {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
@@ -201,9 +188,15 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                     placeholder="Confirm your password"
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    className="flex-1 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none"
+                    disabled={isAnyLoading}
+                    className="flex-1 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-60"
                   />
-                  <button type="button" onClick={() => setShowConfirm((p) => !p)} className="text-slate-400 hover:text-slate-600 transition">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((p) => !p)}
+                    disabled={isAnyLoading}
+                    className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40"
+                  >
                     {showConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
@@ -215,7 +208,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                   type="checkbox"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 accent-[#002366]"
+                  disabled={isAnyLoading}
+                  className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 accent-[#002366] disabled:opacity-60"
                 />
                 <span className="text-xs text-slate-600 leading-snug">
                   I agree to the{" "}
@@ -228,7 +222,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
               {/* Submit */}
               <button
                 onClick={handleReview}
-                disabled={loading}
+                disabled={isAnyLoading}
                 className="w-full h-11 rounded-xl bg-[#002366] text-white text-sm font-semibold hover:bg-[#001a4d] active:scale-[0.98] transition-all duration-150 shadow-md shadow-[#002366]/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
@@ -240,37 +234,13 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                   "Create Account"
                 )}
               </button>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-slate-200" />
-                <span className="text-[11px] text-slate-400 font-medium">or sign up with</span>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
-
-              {/* Social */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleSocialLogin(socialAuthService.loginWithGoogle)}
-                  disabled={loading}
-                  className="h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center gap-2 text-xs font-medium text-slate-700 hover:border-[#002366]/40 hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <FcGoogle className="h-4 w-4" />
-                  Google
-                </button>
-                <button
-                  onClick={() => handleSocialLogin(socialAuthService.loginWithFacebook)}
-                  disabled={loading}
-                  className="h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center gap-2 text-xs font-medium text-slate-700 hover:border-[#002366]/40 hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <FaFacebook className="h-4 w-4 text-[#1877F2]" />
-                  Facebook
-                </button>
-              </div>
-
               <p className="text-center text-xs text-slate-500">
                 Already have an account?{" "}
-                <button onClick={onSwitchToLogin} className="font-semibold text-[#002366] hover:underline">
+                <button
+                  onClick={onSwitchToLogin}
+                  disabled={isAnyLoading}
+                  className="font-semibold text-[#002366] hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   Sign In
                 </button>
               </p>
@@ -279,7 +249,6 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
         </div>
       </div>
 
-      {/* ── Confirm details before submitting ── */}
       <ConfirmModal
         isOpen={showConfirmModal}
         onConfirm={handleConfirmedSubmit}
@@ -298,7 +267,6 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
         ]}
       />
 
-      {/* ── Exit guard — unsaved changes warning ── */}
       <ConfirmModal
         isOpen={showExitModal}
         onConfirm={handleExitConfirmed}
