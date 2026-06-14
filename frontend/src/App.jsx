@@ -35,6 +35,7 @@ import Unauthorized from "./pages/Unauthorized";
 
 // Layout
 import UserLayout from "./layout/UserLayout";
+import AdminLayout from "./layout/AdminLayout";
 
 function App() {
   return (
@@ -60,18 +61,20 @@ function App() {
 
           {/* ADMIN ROUTES */}
           <Route element={<ProtectedRoute requiredRole="admin" />}>
-            <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/admin/audit-logs" element={<AuditLogs />} />
-            <Route path="/admin/data-preprocessing" element={<DataPreprocessing />} />
-            <Route path="/admin/dataset-management" element={<DatasetManagement />} />
-            <Route path="/admin/data-visualization" element={<DataVisualization />} />
-            <Route path="/admin/forecasting" element={<Forecasting />} />
-            <Route path="/admin/model-evaluation" element={<ModelEvaluation />} />
-            <Route path="/admin/model-selection" element={<ModelSelection />} />
-            <Route path="/admin/model-training" element={<ModelTraining />} />
-            <Route path="/admin/regional-analysis" element={<RegionalAnalysis />} />
-            <Route path="/admin/regional-data" element={<RegionalData />} />
-            <Route path="/admin/user-management" element={<UserManagement />} />
+            <Route element={<AdminLayout/>}>
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/admin/audit-logs" element={<AuditLogs />} />
+              <Route path="/admin/data-preprocessing" element={<DataPreprocessing />} />
+              <Route path="/admin/dataset-management" element={<DatasetManagement />} />
+              <Route path="/admin/data-visualization" element={<DataVisualization />} />
+              <Route path="/admin/forecasting" element={<Forecasting />} />
+              <Route path="/admin/model-evaluation" element={<ModelEvaluation />} />
+              <Route path="/admin/model-selection" element={<ModelSelection />} />
+              <Route path="/admin/model-training" element={<ModelTraining />} />
+              <Route path="/admin/regional-analysis" element={<RegionalAnalysis />} />
+              <Route path="/admin/regional-data" element={<RegionalData />} />
+              <Route path="/admin/user-management" element={<UserManagement />} />
+            </Route>
           </Route>
 
           {/* FALLBACK ROUTE */}
