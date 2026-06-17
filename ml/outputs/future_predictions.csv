@@ -1,0 +1,18 @@
+region,year,model,predicted_poverty_incidence
+BARMM,2022,Ridge Regression,92.89924804018801
+CAR,2022,Ridge Regression,79.81121419662365
+CARAGA,2022,Ridge Regression,89.0779980243876
+NCR,2022,Ridge Regression,46.37161266161061
+Region I,2022,Ridge Regression,81.19439121146738
+Region II,2022,Ridge Regression,84.49688742296318
+Region III,2022,Ridge Regression,70.24399446161749
+Region IV-A,2022,Ridge Regression,65.22820775340824
+Region IV-B,2022,Ridge Regression,86.07675901451293
+Region IX,2022,Ridge Regression,87.72237275604094
+Region V,2022,Ridge Regression,86.5111926185085
+Region VI,2022,Ridge Regression,83.24728771178499
+Region VII,2022,Ridge Regression,78.04319986949022
+Region VIII,2022,Ridge Regression,88.79195265433073
+Region X,2022,Ridge Regression,77.36417524651164
+Region XI,2022,Ridge Regression,72.89232821226491
+Region XII,2022,Ridge Regression,81.63859377824004

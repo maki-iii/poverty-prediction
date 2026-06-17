@@ -47,7 +47,6 @@ function NavGroup({ item, collapsed, onNavigate }) {
   const isAnyChildActive = item.children?.some((c) => location.pathname === c.path);
   const [open, setOpen] = useState(isAnyChildActive);
 
-  // Auto-open if a child is active
   useEffect(() => {
     if (isAnyChildActive) setOpen(true);
   }, [isAnyChildActive]);
@@ -95,7 +94,6 @@ function NavGroup({ item, collapsed, onNavigate }) {
 
   return (
     <div>
-      {/* Group header */}
       <button
         onClick={() => setOpen((p) => !p)}
         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200
@@ -106,7 +104,6 @@ function NavGroup({ item, collapsed, onNavigate }) {
         <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {/* Children */}
       {open && (
         <div className="ml-4 mt-0.5 pl-3 border-l border-[#002366]/10 space-y-0.5">
           {item.children.map((child) => {
@@ -349,6 +346,7 @@ export default function AdminSidebar() {
       {/* Mobile sidebar */}
       <div className={`fixed top-0 left-0 z-50 h-full w-60 lg:hidden transform transition-transform duration-300
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        {/* overflow-hidden clips children to the rounded corners */}
         <div className="h-full m-3 bg-white rounded-2xl shadow-2xl overflow-hidden relative border border-[#002366]/10">
           <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-[#002366] z-10">
             <X className="h-4 w-4" />
@@ -358,17 +356,22 @@ export default function AdminSidebar() {
       </div>
 
       {/* Desktop sidebar */}
-      <div className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 ${collapsed ? "w-20" : "w-64"}`}>
-        <div className="relative m-3 bg-white rounded-2xl shadow-lg border border-[#002366]/10 flex flex-col flex-1 min-h-[calc(100vh-24px)] overflow-visible">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="absolute -right-3 top-6 z-10 bg-white border border-[#002366]/10 rounded-full p-1 shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all duration-200"
-          >
-            {collapsed
-              ? <ChevronRight className="h-3.5 w-3.5 text-[#002366]" />
-              : <ChevronLeft className="h-3.5 w-3.5 text-[#002366]" />
-            }
-          </button>
+      {/* outer wrapper is `relative` so the collapse toggle button can poke out freely */}
+      <div className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 relative ${collapsed ? "w-20" : "w-64"}`}>
+
+        {/* Collapse toggle — lives outside the rounded box so overflow-hidden doesn't clip it */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-6 z-10 bg-white border border-[#002366]/10 rounded-full p-1 shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all duration-200"
+        >
+          {collapsed
+            ? <ChevronRight className="h-3.5 w-3.5 text-[#002366]" />
+            : <ChevronLeft className="h-3.5 w-3.5 text-[#002366]" />
+          }
+        </button>
+
+        {/* Inner box — overflow-hidden clips all children cleanly to the rounded corners */}
+        <div className="m-3 bg-white rounded-2xl shadow-lg border border-[#002366]/10 flex flex-col flex-1 min-h-[calc(100vh-24px)] overflow-hidden">
           <SidebarContent onNavigate={handleNavigate} collapsed={collapsed} onLogout={handleLogoutRequest} user={user} />
         </div>
       </div>
