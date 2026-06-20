@@ -2,7 +2,7 @@
 
 ## Dataset
 
-- Source: C:\Users\Dell\Downloads\Capstone\mock_data\mock_poverty_raw.csv
+- Source: data\raw\mock_poverty_raw.csv
 - Regional records: 357
 - Model rows after lagging: 323
 - Regions: 17
@@ -16,6 +16,14 @@
 | Ridge Regression | 0.8302 | 3.5195 | 22.9787 | 4.7936 | 5.3655 |
 | Random Forest Regressor | 0.7925 | 4.0286 | 28.0818 | 5.2992 | 6.5379 |
 | XGBoost Regressor | 0.7576 | 4.1828 | 32.8109 | 5.7281 | 6.925 |
+
+## Time-Series Cross-Validation
+
+| model | r2 | mae | mse | rmse | mape | folds |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ridge Regression | 0.8331 | 3.5888 | 21.4556 | 4.5584 | 5.1663 | 5 |
+| Random Forest Regressor | 0.8147 | 3.5402 | 24.0054 | 4.7484 | 5.4157 | 5 |
+| XGBoost Regressor | 0.7787 | 3.8788 | 28.5728 | 5.2258 | 6.0814 | 5 |
 
 Best model by metrics: **Ridge Regression**
 
@@ -84,7 +92,7 @@ Selected model used for saved predictions: **Ridge Regression**
 2. Data preprocessing layer: aggregates household data into region-year poverty incidence and socioeconomic indicators.
 3. Feature engineering layer: creates dynamic lag features for indicators and historical poverty incidence.
 4. Model training module: trains Ridge Regression, Random Forest Regressor, and XGBoost Regressor.
-5. Model evaluation module: computes R2, MAE, MSE, RMSE, and MAPE with chronological testing.
+5. Model evaluation module: computes R2, MAE, MSE, RMSE, MAPE, chronological testing, and expanding-window time-series cross-validation.
 6. Feature importance module: ranks indicator contributions using model importances or coefficients.
 7. ARIMA forecasting module: forecasts the next 3 years and confidence intervals for each region.
 8. Visualization and reporting module: exports comparison, importance, forecast tables, charts, and this report.

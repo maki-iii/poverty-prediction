@@ -45,7 +45,40 @@ def load_dataset(path: str | Path) -> pd.DataFrame:
     """Load a CSV dataset and normalize column names."""
     df = pd.read_csv(path)
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+    validate_dataset(df)
     return df
+
+
+def validate_dataset(df: pd.DataFrame, schema: DatasetSchema = DatasetSchema()) -> None:
+    """Validate the minimum columns needed before preprocessing."""
+    missing_base = {schema.region_col, schema.year_col} - set(df.columns)
+    if missing_base:
+        raise ValueError(
+            "Dataset is missing required column(s): "
+            f"{sorted(missing_base)}. Required base columns are "
+            f"'{schema.region_col}' and '{schema.year_col}'."
+        )
+
+    has_region_year_target = schema.target_col in df.columns
+    has_household_target = schema.household_poverty_col in df.columns
+    if not has_region_year_target and not has_household_target:
+        raise ValueError(
+            "Dataset must contain either "
+            f"'{schema.target_col}' for region-year data or "
+            f"'{schema.household_poverty_col}' for household-level data."
+        )
+
+    if has_region_year_target:
+        numeric_indicators = [
+            col
+            for col in df.select_dtypes(include=[np.number]).columns
+            if col not in {schema.year_col, schema.target_col}
+        ]
+        if not numeric_indicators:
+            raise ValueError(
+                "Region-year data must include at least one numeric socioeconomic "
+                "indicator column besides year and poverty_incidence."
+            )
 
 
 def generate_mock_region_year_data(
@@ -116,7 +149,8 @@ def generate_mock_region_year_data(
 
 def to_region_year(df: pd.DataFrame, schema: DatasetSchema = DatasetSchema()) -> pd.DataFrame:
     """Convert household-level or region-year records into model-ready rows."""
-    if schema.target_col in df.columns and "employment_rate" in df.columns:
+    validate_dataset(df, schema)
+    if schema.target_col in df.columns:
         region_year = df.copy()
     elif schema.household_poverty_col in df.columns:
         region_year = _aggregate_household_data(df, schema)
