@@ -11,9 +11,12 @@ router.post("/login/user", UserController.userLogin);
 router.post("/login/admin", UserController.adminLogin);
 router.post("/social-login", UserController.socialLogin);
 
+// Use verify token to all routes
+router.use(verifyToken);
+
 // Protected routes (logged-in users)
-router.post("/logout", verifyToken, UserController.logout);
-router.get("/me", verifyToken, (req, res) => {
+router.post("/logout", UserController.logout);
+router.get("/me", (req, res) => {
   res.json({
     message: "Authorized",
     user: req.user,
@@ -21,15 +24,15 @@ router.get("/me", verifyToken, (req, res) => {
 });
 
 // Admin and user
-router.put("/:id", verifyToken, UserController.updateUser);
-router.get("/:id", verifyToken, UserController.getProfile);
-router.put("/:id/change-password", verifyToken, UserController.changePassword);
+router.put("/:id", UserController.updateUser);
+router.get("/:id", UserController.getProfile);
+router.put("/:id/change-password", UserController.changePassword);
 
 // Admin-only routes
-router.get("/", verifyToken, verifyAdmin, UserController.getAllUsers);
-router.delete("/:id", verifyToken, verifyAdmin, UserController.deleteUser);
+router.get("/", verifyAdmin, UserController.getAllUsers);
+router.delete("/:id", verifyAdmin, UserController.deleteUser);
 
 // Create user with role
-router.post("/create", verifyToken, verifyAdmin, UserController.createUser);
+router.post("/create", verifyAdmin, UserController.createUser);
 
 module.exports = router;
