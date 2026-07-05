@@ -71,7 +71,7 @@ function UserCard({ user, collapsed, onLogout, onNavigate }) {
           <User className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "User name"}</p>
+          <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "User"}</p>
           <p className="text-[10px] text-gray-400 truncate">{user?.username || user?.email || ""}</p>
         </div>
         <Settings className="h-3.5 w-3.5 text-gray-400 shrink-0" />

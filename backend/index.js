@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const userRoute = require("./routes/userRoute");
 const seedRoute = require("./routes/seedRoute");
 const otpRoutes = require("./routes/otp/otpRoute");
+const mlRoutes = require("./routes/mlRoutes");
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(cookieParser());
 app.use("/api/users", userRoute);
 app.use("/api/seed", seedRoute);
 app.use("/api/otp", otpRoutes);
+app.use("/api/ml", mlRoutes);
 
 // DB Connection
 db.getConnection()

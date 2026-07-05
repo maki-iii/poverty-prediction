@@ -15,7 +15,6 @@ const navItems = [
     label: "Data",
     icon: Database,
     children: [
-      { label: "Preprocessing",  icon: Sliders,   path: "/admin/data-preprocessing" },
       { label: "Dataset Mgmt",   icon: Database,  path: "/admin/dataset-management" },
       { label: "Visualization",  icon: BarChart2, path: "/admin/data-visualization" },
     ],
@@ -26,7 +25,6 @@ const navItems = [
     children: [
       { label: "Training",   icon: Brain,        path: "/admin/model-training" },
       { label: "Evaluation", icon: FlaskConical, path: "/admin/model-evaluation" },
-      { label: "Selection",  icon: Sliders,      path: "/admin/model-selection" },
     ],
   },
   {
@@ -356,23 +354,29 @@ export default function AdminSidebar() {
       </div>
 
       {/* Desktop sidebar */}
-      {/* outer wrapper is `relative` so the collapse toggle button can poke out freely */}
-      <div className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 relative ${collapsed ? "w-20" : "w-64"}`}>
-
-        {/* Collapse toggle — lives outside the rounded box so overflow-hidden doesn't clip it */}
+      <div
+        className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 relative ${
+          collapsed ? "w-20" : "w-64"
+        }`}
+      >
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-6 z-10 bg-white border border-[#002366]/10 rounded-full p-1 shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all duration-200"
         >
-          {collapsed
-            ? <ChevronRight className="h-3.5 w-3.5 text-[#002366]" />
-            : <ChevronLeft className="h-3.5 w-3.5 text-[#002366]" />
-          }
+          {collapsed ? (
+            <ChevronRight className="h-3.5 w-3.5 text-[#002366]" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5 text-[#002366]" />
+          )}
         </button>
 
-        {/* Inner box — overflow-hidden clips all children cleanly to the rounded corners */}
-        <div className="m-3 bg-white rounded-2xl shadow-lg border border-[#002366]/10 flex flex-col flex-1 min-h-[calc(100vh-24px)] overflow-hidden">
-          <SidebarContent onNavigate={handleNavigate} collapsed={collapsed} onLogout={handleLogoutRequest} user={user} />
+        <div className="m-3 bg-white rounded-2xl shadow-lg border border-[#002366]/10 flex flex-col h-[calc(100vh-24px)] overflow-hidden sticky top-3">
+          <SidebarContent
+            onNavigate={handleNavigate}
+            collapsed={collapsed}
+            onLogout={handleLogoutRequest}
+            user={user}
+          />
         </div>
       </div>
     </>
