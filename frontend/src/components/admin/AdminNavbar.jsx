@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, TrendingUp, MapPin, BarChart2, Database,
-  Menu, X, ChevronLeft, ChevronRight, LogOut, User, Settings,
-  ClipboardList, FlaskConical, Sliders, Brain, ShieldCheck, ChevronDown,
+  LayoutDashboard,
+  Menu, X, ChevronLeft, ClipboardList, ChevronRight, LogOut, User, Settings, ShieldCheck, ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import ConfirmModal from "../common/ConfirmModal";
@@ -11,31 +10,6 @@ import Loader from "../common/Loader";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  {
-    label: "Data",
-    icon: Database,
-    children: [
-      { label: "Dataset Mgmt",   icon: Database,  path: "/admin/dataset-management" },
-      { label: "Visualization",  icon: BarChart2, path: "/admin/data-visualization" },
-    ],
-  },
-  {
-    label: "Models",
-    icon: Brain,
-    children: [
-      { label: "Training",   icon: Brain,        path: "/admin/model-training" },
-      { label: "Evaluation", icon: FlaskConical, path: "/admin/model-evaluation" },
-    ],
-  },
-  {
-    label: "Regional",
-    icon: MapPin,
-    children: [
-      { label: "Analysis", icon: MapPin,    path: "/admin/regional-analysis" },
-      { label: "Data",     icon: BarChart2, path: "/admin/regional-data" },
-    ],
-  },
-  { label: "Forecasting", icon: TrendingUp, path: "/admin/forecasting" },
   { label: "Audit Logs", icon: ClipboardList, path: "/admin/audit-logs" },
   { label: "User Management", icon: User, path: "/admin/user-management" },
 ];

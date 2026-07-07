@@ -1,4 +1,0 @@
-model,test_year,cv_mae,test_mae,test_rmse,test_r2,test_mape,best_params
-Ridge Regression,2026,5.266015524593038,17.229047225052266,17.470745592625796,-41.33728929959458,236.80155978254356,{'model__alpha': 100.0}
-Random Forest Regressor,2026,4.618258454709401,7.913254901960791,8.301941966690729,-8.560036611546284,118.86715996710085,"{'n_estimators': 300, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_depth': 20}"
-XGBoost Regressor,2026,4.97376730796252,7.044080397661993,7.477909169937317,-6.756406122839054,106.54550838413526,"{'subsample': 0.7, 'n_estimators': 100, 'max_depth': 2, 'learning_rate': 0.1, 'colsample_bytree': 0.8}"
