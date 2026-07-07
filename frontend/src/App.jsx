@@ -19,13 +19,6 @@ import UserRegionalData from "./pages/user/UserRegionalData";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AuditLogs from "./pages/admin/AuditLogs";
 import Dashboard from "./pages/admin/Dashboard";
-import DatasetManagement from "./pages/admin/DatasetManagement";
-import DataVisualization from "./pages/admin/DataVisualization";
-import Forecasting from "./pages/admin/Forecasting";
-import ModelEvaluation from "./pages/admin/ModelEvaluation";
-import ModelTraining from "./pages/admin/ModelTraining";
-import RegionalAnalysis from "./pages/admin/RegionalAnalysis";
-import RegionalData from "./pages/admin/RegionalData";
 import UserManagement from "./pages/admin/UserManagement";
 
 // Unauthorized
@@ -62,13 +55,6 @@ function App() {
             <Route element={<AdminLayout/>}>
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/admin/audit-logs" element={<AuditLogs />} />
-              <Route path="/admin/dataset-management" element={<DatasetManagement />} />
-              <Route path="/admin/data-visualization" element={<DataVisualization />} />
-              <Route path="/admin/forecasting" element={<Forecasting />} />
-              <Route path="/admin/model-evaluation" element={<ModelEvaluation />} />
-              <Route path="/admin/model-training" element={<ModelTraining />} />
-              <Route path="/admin/regional-analysis" element={<RegionalAnalysis />} />
-              <Route path="/admin/regional-data" element={<RegionalData />} />
               <Route path="/admin/user-management" element={<UserManagement />} />
             </Route>
           </Route>
