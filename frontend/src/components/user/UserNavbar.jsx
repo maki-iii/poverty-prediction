@@ -1,8 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, TrendingUp, MapPin, BarChart2,
-  Menu, X, ChevronLeft, ChevronRight, LogOut, User, Settings,
+  LayoutDashboard,
+  Database,
+  BookOpen,
+  TrendingUp,
+  MapPinned,
+  Map,
+  ChartColumnBig,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  User,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import ConfirmModal from "../common/ConfirmModal"; 
@@ -10,9 +22,12 @@ import Loader from "../common/Loader";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/user/dashboard" },
+  { label: "Dataset", icon: Database, path: "/user/dataset" },
+  { label: "Regional Data", icon: MapPinned, path: "/user/regional-data" },
+  { label: "Methods", icon: BookOpen, path: "/user/methods" },
   { label: "Forecasting", icon: TrendingUp, path: "/user/forecasting" },
-  { label: "Regional Analysis", icon: MapPin, path: "/user/regional-analysis" },
-  { label: "Visualization", icon: BarChart2, path: "/user/data-visualization" },
+  { label: "Regional Analysis", icon: Map, path: "/user/regional-analysis" },
+  { label: "Data Visualization", icon: ChartColumnBig, path: "/user/data-visualization" },
 ];
 
 function UserCard({ user, collapsed, onLogout, onNavigate }) {

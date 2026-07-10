@@ -2,16 +2,97 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  Menu, X, ChevronLeft, ClipboardList, ChevronRight, LogOut, User, Settings, ShieldCheck, ChevronDown,
+  ClipboardList,
+  Database,
+  BookOpen,
+  BrainCircuit,
+  TrendingUp,
+  BadgeCheck,
+  Map,
+  MapPinned,
+  ChartColumnBig,
+  UsersRound,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Settings,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import ConfirmModal from "../common/ConfirmModal";
 import Loader from "../common/Loader";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { label: "Audit Logs", icon: ClipboardList, path: "/admin/audit-logs" },
-  { label: "User Management", icon: User, path: "/admin/user-management" },
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    path: "/admin/dashboard",
+  },
+  {
+    label: "Dataset Management",
+    icon: Database,
+    path: "/admin/dataset-management",
+  },
+  {
+    label: "Regional Data",
+    icon: MapPinned,
+    path: "/admin/regional-data",
+  },
+  {
+    label: "Methods",
+    icon: BookOpen,
+    path: "/admin/methods",
+  },
+  {
+    label: "Model",
+    icon: BrainCircuit,
+    children: [
+      {
+        label: "Model Training",
+        icon: BrainCircuit,
+        path: "/admin/model-training",
+      },
+      {
+        label: "Model Evaluation",
+        icon: BadgeCheck,
+        path: "/admin/model-evaluation",
+      },
+    ],
+  },
+  {
+    label: "Forecasting",
+    icon: TrendingUp,
+    path: "/admin/forecasting",
+  },
+  {
+    label: "Regional Analysis",
+    icon: Map,
+    path: "/admin/regional-analysis",
+  },
+  {
+    label: "Visualization",
+    icon: ChartColumnBig,
+    path: "/admin/visualization",
+  },
+  {
+    label: "System",
+    icon: Settings,
+    children: [
+      {
+        label: "User Management",
+        icon: UsersRound,
+        path: "/admin/user-management",
+      },
+      {
+        label: "Audit Logs",
+        icon: ClipboardList,
+        path: "/admin/audit-logs",
+      },
+    ],
+  },
 ];
 
 function NavGroup({ item, collapsed, onNavigate }) {
