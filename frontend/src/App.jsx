@@ -14,8 +14,8 @@ import UserDataset from "./pages/user/UserDataset";
 import UserDataVisualization from "./pages/user/UserDataVisualization";
 import UserForecasting from "./pages/user/UserForecasting";
 import UserMethods from "./pages/user/UserMethods";
-import UserRegionalAnalysis from "./pages/user/UserRegionalAnalysis";
-import UserRegionalData from "./pages/user/UserRegionalData";
+import UserAnalysis from "./pages/user/UserAnalysis";
+import UserData from "./pages/user/UserData";
 
 // Admin Imports
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -26,8 +26,8 @@ import Forecasting from "./pages/admin/Forecasting";
 import Methods from "./pages/admin/Methods";
 import ModelEvaluation from "./pages/admin/ModelEvaluation";
 import ModelTraining from "./pages/admin/ModelTraining";
-import RegionalAnalysis from "./pages/admin/RegionalAnalysis";
-import RegionalData from "./pages/admin/RegionalData";
+import Analysis from "./pages/admin/Analysis";
+import Data from "./pages/admin/Data";
 import Visualization from "./pages/admin/Visualization";
 import UserManagement from "./pages/admin/UserManagement";
 
@@ -53,10 +53,10 @@ function App() {
             <Route element={<UserLayout />}>
               <Route path="/user/dashboard" element={<UserDashboard />} />
               <Route path="/user/dataset" element={<UserDataset />} />
-              <Route path="/user/regional-data" element={<UserRegionalData />} />
+              <Route path="/user/data" element={<UserData />} />
               <Route path="/user/methods" element={<UserMethods />} />
               <Route path="/user/forecasting" element={<UserForecasting />} />
-              <Route path="/user/regional-analysis" element={<UserRegionalAnalysis />} />
+              <Route path="/user/analysis" element={<UserAnalysis />} />
               <Route path="/user/data-visualization" element={<UserDataVisualization />} />
 
               {/* Default User Route */}
@@ -69,12 +69,12 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/admin/dataset-management" element={<DatasetManagement />} />
-              <Route path="/admin/regional-data" element={<RegionalData />} />
+              <Route path="/admin/data" element={<Data />} />
               <Route path="/admin/methods" element={<Methods />} />
               <Route path="/admin/model-training" element={<ModelTraining />} />
               <Route path="/admin/forecasting" element={<Forecasting />} />
               <Route path="/admin/model-evaluation" element={<ModelEvaluation />} />
-              <Route path="/admin/regional-analysis" element={<RegionalAnalysis />} />
+              <Route path="/admin/analysis" element={<Analysis />} />
               <Route path="/admin/visualization" element={<Visualization />} />
               <Route path="/admin/user-management" element={<UserManagement />} />
               <Route path="/admin/audit-logs" element={<AuditLogs />} />

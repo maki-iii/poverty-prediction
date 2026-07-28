@@ -37,9 +37,9 @@ const navItems = [
     path: "/admin/dataset-management",
   },
   {
-    label: "Regional Data",
+    label: "Data",
     icon: MapPinned,
-    path: "/admin/regional-data",
+    path: "/admin/data",
   },
   {
     label: "Methods",
@@ -68,9 +68,9 @@ const navItems = [
     path: "/admin/forecasting",
   },
   {
-    label: "Regional Analysis",
+    label: "Analysis",
     icon: Map,
-    path: "/admin/regional-analysis",
+    path: "/admin/analysis",
   },
   {
     label: "Visualization",

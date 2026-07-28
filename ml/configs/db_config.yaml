@@ -1,0 +1,9 @@
+# Non-secret DB settings. Actual credentials (user/password/host) are
+# loaded from .env at runtime by src/database/base.py -- nothing sensitive
+# lives in this file, so it's safe to commit.
+
+driver: "mysql+pymysql"
+charset: "utf8mb4"
+pool_size: 5
+pool_recycle: 3600
+echo: false          # set true to log all SQL statements (debugging)

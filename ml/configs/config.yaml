@@ -1,0 +1,75 @@
+# =====================================================================
+# Master config for the poverty prediction pipeline.
+# Editing THIS file is the only thing needed to:
+#   - add/remove an ML model from the comparison
+#   - change hyperparameters
+#   - change the forecast horizon
+#   - change which columns are features vs. target
+# =====================================================================
+
+region: "NCR"
+
+target_column: "poverty_incidence"
+
+# These are the 12 socioeconomic indicators. ARIMA forecasts each one;
+# the ML models then use all 12 as features to predict poverty_incidence.
+feature_columns:
+  - avg_household_income
+  - avg_household_expenditure
+  - avg_family_size
+  - employment_rate
+  - avg_educational_attainment
+  - home_ownership_pct
+  - electricity_access_pct
+  - safe_water_access_pct
+  - sanitary_toilet_access_pct
+  - refrigerator_ownership_pct
+  - vehicle_ownership_pct
+  - inflation_rate
+
+# ---------------------------------------------------------------------
+# ARIMA settings
+# ---------------------------------------------------------------------
+arima:
+  forecast_horizon_years: 3         # 2024, 2025, 2026
+  auto_order_selection: true        # use pmdarima.auto_arima per indicator
+  seasonal: false                   # annual data, no seasonality
+  fallback_order: [1, 1, 1]         # used if auto_arima fails to converge
+
+# ---------------------------------------------------------------------
+# ML model comparison
+# Add a new model by:
+#   1. creating src/models/ml/algorithms/<name>_model.py implementing base_model.BaseModel
+#   2. registering it in src/models/ml/model_factory.py
+#   3. adding an entry here
+# ---------------------------------------------------------------------
+ml:
+  active_models:
+    - xgboost
+    - ridge
+    - random_forest
+
+  test_size: 0.2          # holdout split for evaluation
+  random_state: 42
+  cv_folds: 5              # cross-validation folds during comparison
+
+  selection_metric: "rmse"  # which metric decides the "best" model: rmse | mae | r2
+
+  hyperparameters:
+    xgboost:
+      n_estimators: 300
+      max_depth: 4
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+
+    ridge:
+      alpha: 1.0
+      random_state: 42
+
+    random_forest:
+      n_estimators: 300
+      max_depth: 6
+      min_samples_leaf: 2
+      random_state: 42

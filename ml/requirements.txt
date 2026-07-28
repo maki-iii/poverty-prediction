@@ -1,0 +1,27 @@
+# --- Database ---
+SQLAlchemy>=2.0.31
+PyMySQL>=1.1.1
+python-dotenv>=1.0.1
+cryptography>=42.0.8      # required by PyMySQL for auth plugins on some MySQL configs
+
+# --- Data handling ---
+pandas>=2.2.3
+numpy>=1.26.4
+openpyxl>=3.1.2           # to read the seed .xlsx file
+
+# --- ARIMA forecasting ---
+statsmodels>=0.14.2
+pmdarima>=2.0.4           # auto_arima for dynamic order selection
+
+# --- Machine learning ---
+scikit-learn>=1.5.1
+xgboost>=2.1.0
+joblib>=1.4.2              # model persistence (.pkl)
+
+# --- Config ---
+PyYAML>=6.0.1
+
+# --- API ---
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9    # needed for file upload endpoints (merge new actuals)

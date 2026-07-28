@@ -23,10 +23,10 @@ import Loader from "../common/Loader";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/user/dashboard" },
   { label: "Dataset", icon: Database, path: "/user/dataset" },
-  { label: "Regional Data", icon: MapPinned, path: "/user/regional-data" },
+  { label: "Regional Data", icon: MapPinned, path: "/user/data" },
   { label: "Methods", icon: BookOpen, path: "/user/methods" },
   { label: "Forecasting", icon: TrendingUp, path: "/user/forecasting" },
-  { label: "Regional Analysis", icon: Map, path: "/user/regional-analysis" },
+  { label: "Regional Analysis", icon: Map, path: "/user/analysis" },
   { label: "Data Visualization", icon: ChartColumnBig, path: "/user/data-visualization" },
 ];
 
