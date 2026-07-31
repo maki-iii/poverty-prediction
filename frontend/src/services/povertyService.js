@@ -1,75 +1,55 @@
-import axiosInstance from "../api/axiosInstance";
+import * as PovertyApi from "../api/povertyApi";
 
-const BASE = "/api/poverty";
+// Business logic lives here -- which endpoint(s) to call, how to unwrap
+// responses, any combining/transformation. Components/hooks call THIS,
+// never api/povertyApi.js directly.
 
 const PovertyService = {
 
-  // --- Data retrieval ---
-
   getActuals: async ({ region, startYear, endYear } = {}) => {
-    const { data } = await axiosInstance.get(`${BASE}/actuals`, {
-      params: { region, startYear, endYear },
-    });
+    const { data } = await PovertyApi.getActuals({ region, startYear, endYear });
     return data;
   },
 
   getLatestForecasts: async (region = "NCR") => {
-    const { data } = await axiosInstance.get(`${BASE}/forecasts/latest`, {
-      params: { region },
-    });
+    const { data } = await PovertyApi.getLatestForecasts(region);
     return data;
   },
 
   getLatestPredictions: async (region = "NCR") => {
-    const { data } = await axiosInstance.get(`${BASE}/predictions/latest`, {
-      params: { region },
-    });
+    const { data } = await PovertyApi.getLatestPredictions(region);
     return data;
   },
 
   getModelComparison: async () => {
-    const { data } = await axiosInstance.get(`${BASE}/models/comparison`);
+    const { data } = await PovertyApi.getModelComparison();
     return data;
   },
 
   getTimeline: async (region = "NCR") => {
-    const { data } = await axiosInstance.get(`${BASE}/timeline`, {
-      params: { region },
-    });
+    const { data } = await PovertyApi.getTimeline(region);
     return data;
   },
 
   // --- Pipeline triggers ---
 
   runForecast: async () => {
-    const { data } = await axiosInstance.post(`${BASE}/pipeline/forecast`);
+    const { data } = await PovertyApi.runForecast();
     return data;
   },
 
   runTrainAndEvaluate: async () => {
-    const { data } = await axiosInstance.post(`${BASE}/pipeline/train`);
+    const { data } = await PovertyApi.runTrainAndEvaluate();
     return data;
   },
 
   runPredict: async () => {
-    const { data } = await axiosInstance.post(`${BASE}/pipeline/predict`);
+    const { data } = await PovertyApi.runPredict();
     return data;
   },
 
   runFullPipeline: async () => {
-    const { data } = await axiosInstance.post(`${BASE}/pipeline/run-full`);
-    return data;
-  },
-
-  // --- Merge new actual data (file upload) ---
-
-  mergeNewActuals: async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const { data } = await axiosInstance.post(`${BASE}/actuals/merge`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const { data } = await PovertyApi.runFullPipeline();
     return data;
   },
 

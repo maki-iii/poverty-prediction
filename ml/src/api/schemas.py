@@ -103,3 +103,53 @@ class MergeActualsResponse(BaseModel):
     status: str
     message: str
     rows_merged: int
+
+
+# ---------------------------------------------------------------------
+# Dataset management
+# ---------------------------------------------------------------------
+class DatasetOut(BaseModel):
+    id: int
+    original_filename: str
+    uploaded_by: Optional[str] = None
+    stored_filename: str
+    stored_path: str
+    region: Optional[str] = None
+    year_range: Optional[str] = None
+    row_count: Optional[int] = None
+    survey_type: Optional[str] = None
+    status: str
+    error_message: Optional[str] = None
+
+    processed_year: Optional[int] = None
+    processed_avg_household_income: Optional[float] = None
+    processed_avg_household_expenditure: Optional[float] = None
+    processed_avg_family_size: Optional[float] = None
+    processed_employment_rate: Optional[float] = None
+    processed_avg_educational_attainment: Optional[float] = None
+    processed_inflation_rate: Optional[float] = None
+    processed_poverty_incidence: Optional[float] = None
+
+    uploaded_at: Optional[str] = None
+    merged_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class MergeDatasetResponse(BaseModel):
+    status: str
+    message: str
+    dataset_id: int
+    rows_merged: int
+
+
+class DeleteDatasetResponse(BaseModel):
+    status: str
+    message: str
+
+class ProcessDatasetRequest(BaseModel):
+    survey_type: str
+    year: int
+    inflation_rate: float
+    poverty_incidence: float

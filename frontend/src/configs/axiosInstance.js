@@ -1,7 +1,7 @@
 import axios from "axios";
-import envConfig from "../configs/env.config";
+import envConfig from "./env.config";
 
-// Central axios instance -- every service imports THIS instead of
+// Central axios instance -- every api/*.js file imports THIS instead of
 // creating its own axios calls. Makes it easy to add auth headers,
 // interceptors, or change the base URL in one place later.
 const axiosInstance = axios.create({

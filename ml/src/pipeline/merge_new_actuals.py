@@ -28,12 +28,6 @@ COLUMN_MAP = {
     "Average Family Size": "avg_family_size",
     "Employment Rate (%)": "employment_rate",
     "Average Educational Attainment (Years)": "avg_educational_attainment",
-    "Home Ownership (%)": "home_ownership_pct",
-    "Electricity Access (%)": "electricity_access_pct",
-    "Safe Water Access (%)": "safe_water_access_pct",
-    "Sanitary Toilet Access (%)": "sanitary_toilet_access_pct",
-    "Refrigerator Ownership (%)": "refrigerator_ownership_pct",
-    "Vehicle Ownership (%)": "vehicle_ownership_pct",
     "Inflation Rate (%)": "inflation_rate",
     "Poverty Incidence (%)": "poverty_incidence",
 }

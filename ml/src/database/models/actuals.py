@@ -22,12 +22,6 @@ class ActualIndicators(Base):
     avg_family_size = Column(DECIMAL(4, 2), nullable=False)
     employment_rate = Column(DECIMAL(5, 2), nullable=False)
     avg_educational_attainment = Column(DECIMAL(5, 2), nullable=False)
-    home_ownership_pct = Column(DECIMAL(5, 2), nullable=False)
-    electricity_access_pct = Column(DECIMAL(5, 2), nullable=False)
-    safe_water_access_pct = Column(DECIMAL(5, 2), nullable=False)
-    sanitary_toilet_access_pct = Column(DECIMAL(5, 2), nullable=False)
-    refrigerator_ownership_pct = Column(DECIMAL(5, 2), nullable=False)
-    vehicle_ownership_pct = Column(DECIMAL(5, 2), nullable=False)
     inflation_rate = Column(DECIMAL(5, 2), nullable=False)
 
     poverty_incidence = Column(DECIMAL(5, 2), nullable=False)  # target

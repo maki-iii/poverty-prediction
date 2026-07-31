@@ -10,7 +10,7 @@ Docs available at: http://127.0.0.1:8000/docs
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.database.repository.actuals_repo import get_actuals, get_years_present, upsert_year
@@ -23,6 +23,9 @@ from src.models.ml.predict_poverty import predict as run_predict_pipeline
 from src.pipeline.run_full_pipeline import run_full_pipeline
 from src.pipeline.merge_new_actuals import load_new_actuals_file
 
+from src.pipeline.dataset_management import process_dataset
+from src.api.schemas import ProcessDatasetRequest
+
 from src.api.schemas import (
     ActualIndicatorOut,
     ForecastedIndicatorOut,
@@ -31,6 +34,14 @@ from src.api.schemas import (
     ModelComparisonOut,
     MergeActualsResponse,
 )
+
+from src.pipeline.dataset_management import (
+    save_uploaded_file,
+    get_datasets,
+    merge_dataset,
+    remove_dataset,
+)
+from src.api.schemas import DatasetOut, MergeDatasetResponse, DeleteDatasetResponse
 
 import json
 from pathlib import Path as _Path
@@ -211,5 +222,70 @@ def merge_new_actuals(file: UploadFile = File(...)):
                     f"Run /pipeline/run-full to refresh forecasts/predictions.",
             rows_merged=count,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =======================================================================
+# DATASET MANAGEMENT (upload -> review -> merge)
+# =======================================================================
+@app.post("/datasets/upload", response_model=DatasetOut, tags=["datasets"])
+def upload_dataset(file: UploadFile = File(...), uploaded_by: str = Form(None)):
+    if not file.filename.endswith((".xlsx", ".xls", ".CSV")):
+        raise HTTPException(status_code=400, detail="File must be an .xlsx, .xls, or .csv file.")
+    try:
+        file_bytes = file.file.read()
+        record = save_uploaded_file(file_bytes, file.filename, uploaded_by=uploaded_by)
+        return record
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/datasets", response_model=list[DatasetOut], tags=["datasets"])
+def list_all_datasets(status: str = None):
+    return get_datasets(status=status)
+
+
+@app.post("/datasets/{dataset_id}/merge", response_model=MergeDatasetResponse, tags=["datasets"])
+def merge_dataset_endpoint(dataset_id: int):
+    try:
+        result = merge_dataset(dataset_id)
+        return MergeDatasetResponse(
+            status="success",
+            message=f"Merged {result['rows_merged']} row(s) into actuals. "
+                    f"Run /pipeline/run-full to refresh forecasts/predictions.",
+            dataset_id=dataset_id,
+            rows_merged=result["rows_merged"],
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/datasets/{dataset_id}", response_model=DeleteDatasetResponse, tags=["datasets"])
+def delete_dataset_endpoint(dataset_id: int):
+    deleted = remove_dataset(dataset_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Dataset id={dataset_id} not found")
+    return DeleteDatasetResponse(status="success", message=f"Dataset id={dataset_id} deleted.")
+
+@app.post("/datasets/{dataset_id}/process", response_model=DatasetOut, tags=["datasets"])
+def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest):
+    try:
+        record = process_dataset(
+            dataset_id=dataset_id,
+            survey_type=request.survey_type,
+            year=request.year,
+            inflation_rate=request.inflation_rate,
+            poverty_incidence=request.poverty_incidence,
+        )
+        return record
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

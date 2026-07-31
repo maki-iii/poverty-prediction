@@ -19,12 +19,6 @@ feature_columns:
   - avg_family_size
   - employment_rate
   - avg_educational_attainment
-  - home_ownership_pct
-  - electricity_access_pct
-  - safe_water_access_pct
-  - sanitary_toilet_access_pct
-  - refrigerator_ownership_pct
-  - vehicle_ownership_pct
   - inflation_rate
 
 # ---------------------------------------------------------------------
