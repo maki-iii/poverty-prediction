@@ -22,12 +22,6 @@ class ActualIndicatorOut(BaseModel):
     avg_family_size: float
     employment_rate: float
     avg_educational_attainment: float
-    home_ownership_pct: float
-    electricity_access_pct: float
-    safe_water_access_pct: float
-    sanitary_toilet_access_pct: float
-    refrigerator_ownership_pct: float
-    vehicle_ownership_pct: float
     inflation_rate: float
     poverty_incidence: float
     source: str
@@ -50,12 +44,6 @@ class ForecastedIndicatorOut(BaseModel):
     avg_family_size: Optional[float] = None
     employment_rate: Optional[float] = None
     avg_educational_attainment: Optional[float] = None
-    home_ownership_pct: Optional[float] = None
-    electricity_access_pct: Optional[float] = None
-    safe_water_access_pct: Optional[float] = None
-    sanitary_toilet_access_pct: Optional[float] = None
-    refrigerator_ownership_pct: Optional[float] = None
-    vehicle_ownership_pct: Optional[float] = None
     inflation_rate: Optional[float] = None
     arima_order: Optional[str] = None
     model_run_id: Optional[str] = None

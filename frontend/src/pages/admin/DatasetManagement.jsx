@@ -1,22 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Database, FileClock, CheckCircle2 } from "lucide-react";
 import { useDatasets, useDatasetActions } from "../../hooks/useDatasets";
 
 import SearchBar from "../../components/common/SearchBar";
 import DateRangeFilter from "../../components/common/DateRangeFilter";
+import Loader from "../../components/common/Loader";
 import ConfirmModal from "../../components/common/ConfirmModal";
+import Pagination from "../../components/common/Pagination";
+import usePagination from "../../hooks/usePagination";
 import UploadButton from "../../components/admin/Dataset_management/UploadButton";
 import ProcessModal from "../../components/admin/Dataset_management/ProcessModal";
 import PendingDatasetsTable from "../../components/admin/Dataset_management/PendingDatasetTable";
 import ProcessedDatasetsTable from "../../components/admin/Dataset_management/ProcessedDatasetTable";
-import Loader from "../../components/common/Loader";
-
 
 export default function DatasetManagement() {
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
-  const [selectedDataset, setSelectedDataset] = useState(null); // for ProcessModal
-  const [confirmAction, setConfirmAction] = useState(null); // { type: 'delete'|'merge', dataset }
+  const [selectedDataset, setSelectedDataset] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const {
     data: pendingDatasets,
@@ -58,6 +59,31 @@ export default function DatasetManagement() {
     () => filterDatasets(processedDatasets),
     [processedDatasets, search, dateRange]
   );
+
+  // --- Pagination (one per table, since they're independent lists) ---
+  const {
+    paginatedItems: paginatedPending,
+    currentPage: pendingPage,
+    totalItems: pendingTotal,
+    pageSize: pendingPageSize,
+    goToPage: goToPendingPage,
+    resetPage: resetPendingPage,
+  } = usePagination(filteredPending, 10);
+
+  const {
+    paginatedItems: paginatedProcessed,
+    currentPage: processedPage,
+    totalItems: processedTotal,
+    pageSize: processedPageSize,
+    goToPage: goToProcessedPage,
+    resetPage: resetProcessedPage,
+  } = usePagination(filteredProcessed, 10);
+
+  // Reset both tables to page 1 whenever filters change
+  useEffect(() => {
+    resetPendingPage();
+    resetProcessedPage();
+  }, [search, dateRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Action handlers ---
   const handleUpload = async (file) => {
@@ -155,16 +181,24 @@ export default function DatasetManagement() {
         ) : pendingError ? (
           <p className="text-sm text-red-600">{pendingError}</p>
         ) : (
-          <PendingDatasetsTable
-            datasets={filteredPending}
-            onProcess={setSelectedDataset}
-            onDelete={(id) =>
-              setConfirmAction({
-                type: "delete",
-                dataset: filteredPending.find((d) => d.id === id),
-              })
-            }
-          />
+          <>
+            <PendingDatasetsTable
+              datasets={paginatedPending}
+              onProcess={setSelectedDataset}
+              onDelete={(id) =>
+                setConfirmAction({
+                  type: "delete",
+                  dataset: filteredPending.find((d) => d.id === id),
+                })
+              }
+            />
+            <Pagination
+              currentPage={pendingPage}
+              totalItems={pendingTotal}
+              pageSize={pendingPageSize}
+              onPageChange={goToPendingPage}
+            />
+          </>
         )}
       </section>
 
@@ -184,21 +218,29 @@ export default function DatasetManagement() {
         ) : processedError ? (
           <p className="text-sm text-red-600">{processedError}</p>
         ) : (
-          <ProcessedDatasetsTable
-            datasets={filteredProcessed}
-            onMerge={(id) =>
-              setConfirmAction({
-                type: "merge",
-                dataset: filteredProcessed.find((d) => d.id === id),
-              })
-            }
-            onDelete={(id) =>
-              setConfirmAction({
-                type: "delete",
-                dataset: filteredProcessed.find((d) => d.id === id),
-              })
-            }
-          />
+          <>
+            <ProcessedDatasetsTable
+              datasets={paginatedProcessed}
+              onMerge={(id) =>
+                setConfirmAction({
+                  type: "merge",
+                  dataset: filteredProcessed.find((d) => d.id === id),
+                })
+              }
+              onDelete={(id) =>
+                setConfirmAction({
+                  type: "delete",
+                  dataset: filteredProcessed.find((d) => d.id === id),
+                })
+              }
+            />
+            <Pagination
+              currentPage={processedPage}
+              totalItems={processedTotal}
+              pageSize={processedPageSize}
+              onPageChange={goToProcessedPage}
+            />
+          </>
         )}
       </section>
 

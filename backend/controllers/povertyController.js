@@ -13,6 +13,19 @@ const PovertyController = {
     }
   },
 
+  // DELETE /api/poverty/actuals/:year
+  deleteActual: async (req, res) => {
+    try {
+      const { year } = req.params;
+      const { region } = req.query;
+      const result = await PovertyService.deleteActual(region || "NCR", year);
+      return res.status(200).json(result);
+    } catch (error) {
+      const notFound = error.message.includes("No actuals row found");
+      return res.status(notFound ? 404 : 500).json({ message: error.message });
+    }
+  },
+
   // GET /api/poverty/forecasts/latest
   getLatestForecasts: async (req, res) => {
     try {
@@ -109,6 +122,16 @@ const PovertyController = {
       }
       const result = await PovertyService.mergeNewActuals(req.file.buffer, req.file.originalname);
       return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  },
+
+  // GET /api/poverty/pipeline/train-status
+  getTrainStatus: async (req, res) => {
+    try {
+      const status = await PovertyService.getTrainStatus();
+      return res.status(200).json(status);
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }

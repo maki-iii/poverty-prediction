@@ -1,4 +1,4 @@
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../configs/axiosInstance";
 
 const BASE = "/api/poverty";
 
@@ -7,6 +7,9 @@ const BASE = "/api/poverty";
 
 export const getActuals = (params) =>
   axiosInstance.get(`${BASE}/actuals`, { params });
+
+export const deleteActual = (year, region = "NCR") =>
+  axiosInstance.delete(`${BASE}/actuals/${year}`, { params: { region } });
 
 export const getLatestForecasts = (region) =>
   axiosInstance.get(`${BASE}/forecasts/latest`, { params: { region } });
@@ -31,3 +34,6 @@ export const runPredict = () =>
 
 export const runFullPipeline = () =>
   axiosInstance.post(`${BASE}/pipeline/run-full`);
+
+export const getTrainStatus = () =>
+  axiosInstance.get(`${BASE}/pipeline/train-status`);

@@ -8,12 +8,13 @@ Docs available at: http://127.0.0.1:8000/docs
 """
 
 import tempfile
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.database.repository.actuals_repo import get_actuals, get_years_present, upsert_year
+from src.database.repository.actuals_repo import get_actuals, get_years_present, upsert_year, delete_actual
 from src.database.repository.forecasts_repo import get_forecasts, get_latest_run_id as get_latest_forecast_run_id
 from src.database.repository.predictions_repo import get_predictions
 
@@ -22,6 +23,8 @@ from src.models.ml.evaluate import run as run_evaluate_pipeline
 from src.models.ml.predict_poverty import predict as run_predict_pipeline
 from src.pipeline.run_full_pipeline import run_full_pipeline
 from src.pipeline.merge_new_actuals import load_new_actuals_file
+
+from src.pipeline import training_status
 
 from src.pipeline.dataset_management import process_dataset
 from src.api.schemas import ProcessDatasetRequest
@@ -87,6 +90,12 @@ def list_actual_years(region: str = None):
     years = get_years_present(region=region)
     return {"region": region, "years": years}
 
+@app.delete("/actuals/{year}", tags=["actuals"])
+def delete_actual_endpoint(year: int, region: str = "NCR"):
+    deleted = delete_actual(region=region, year=year)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"No actuals row found for {region} {year}")
+    return {"status": "success", "message": f"Deleted {region} {year} from actuals."}
 
 # =======================================================================
 # FORECASTS
@@ -154,17 +163,36 @@ def trigger_forecast():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _run_training_background():
+    try:
+        training_status.reset()
+        best_model_name = run_evaluate_pipeline()
+
+        training_status.update(step="predicting", progress=85, message="Generating predictions...")
+        run_predict_pipeline()
+
+        training_status.complete(best_model_name)
+    except Exception as e:
+        training_status.fail(e)
+
+
 @app.post("/pipeline/train", response_model=PipelineRunResponse, tags=["pipeline"])
 def trigger_train_and_evaluate():
-    try:
-        best_model_name = run_evaluate_pipeline()
-        return PipelineRunResponse(
-            status="success",
-            message="Training and evaluation completed.",
-            best_model=best_model_name,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if training_status.is_running():
+        raise HTTPException(status_code=409, detail="Training is already in progress.")
+
+    thread = threading.Thread(target=_run_training_background, daemon=True)
+    thread.start()
+
+    return PipelineRunResponse(
+        status="started",
+        message="Training started. Poll /pipeline/train-status for progress.",
+    )
+
+
+@app.get("/pipeline/train-status", tags=["pipeline"])
+def get_train_status():
+    return training_status.get_status()
 
 
 @app.post("/pipeline/predict", response_model=PipelineRunResponse, tags=["pipeline"])

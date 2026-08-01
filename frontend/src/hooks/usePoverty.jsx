@@ -84,5 +84,6 @@ export function usePipelineActions() {
     runPredict: () => runAction(PovertyService.runPredict),
     runFullPipeline: () => runAction(PovertyService.runFullPipeline),
     mergeNewActuals: (file) => runAction(() => PovertyService.mergeNewActuals(file)),
+    deleteActual: (year, region) => runAction(() => PovertyService.deleteActual(year, region)),
   };
 }

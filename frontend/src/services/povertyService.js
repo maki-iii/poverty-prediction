@@ -11,6 +11,11 @@ const PovertyService = {
     return data;
   },
 
+  deleteActual: async (year, region = "NCR") => {
+    const { data } = await PovertyApi.deleteActual(year, region);
+    return data;
+  },
+
   getLatestForecasts: async (region = "NCR") => {
     const { data } = await PovertyApi.getLatestForecasts(region);
     return data;
@@ -50,6 +55,11 @@ const PovertyService = {
 
   runFullPipeline: async () => {
     const { data } = await PovertyApi.runFullPipeline();
+    return data;
+  },
+
+  getTrainStatus: async () => {
+    const { data } = await PovertyApi.getTrainStatus();
     return data;
   },
 

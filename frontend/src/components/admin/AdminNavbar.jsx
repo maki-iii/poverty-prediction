@@ -41,11 +41,14 @@ const navItems = [
     icon: MapPinned,
     path: "/admin/data",
   },
-  {
-    label: "Methods",
-    icon: BookOpen,
-    path: "/admin/methods",
-  },
+
+  //{
+    //label: "Methods",
+    //icon: BookOpen,
+    //path: "/admin/methods",
+  //},
+
+ 
   {
     label: "Model",
     icon: BrainCircuit,

@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split
 
 from src.preprocess.load_clean import get_training_data
 from src.models.ml.model_factory import get_active_models
+from src.pipeline import training_status
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # ml/src/models/ml/train.py -> ml/
 SAVED_MODELS_DIR = PROJECT_ROOT / "saved_models" / "ml"
@@ -53,8 +54,18 @@ def train_all_models():
 
     SAVED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
+    active_models = get_active_models()
+    total = len(active_models)
+
     fitted_models = {}
-    for model in get_active_models():
+    for idx, model in enumerate(active_models):
+        progress = int(10 + (idx / total) * 50)  # training phase spans ~10-60%
+        training_status.update(
+            step="training",
+            progress=progress,
+            message=f"Training {model.name} ({idx + 1}/{total})...",
+        )
+
         print(f"[train] Fitting {model.name}...")
         model.fit(X_train, y_train)
 

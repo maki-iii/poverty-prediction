@@ -20,6 +20,19 @@ const PovertyService = {
     }
   },
 
+  // Delete Actual data
+  deleteActual: async (region, year) => {
+    try {
+      const { data } = await mlApi.delete(`/actuals/${year}`, { params: { region } });
+      return data;
+    } catch (err) {
+      if (err.response?.status === 404) {
+        throw new Error(`No actuals row found for ${region} ${year}`);
+      }
+      throw new Error(`Failed to delete: ${err.response?.data?.detail || err.message}`);
+    }
+  },
+
   // Get latest ARIMA-forecasted inputs (e.g. 2024-2026)
   getLatestForecasts: async (region = "NCR") => {
     try {
@@ -136,6 +149,16 @@ const PovertyService = {
       throw new Error(`Merge failed: ${err.response?.data?.detail || err.message}`);
     }
   },
+
+  getTrainStatus: async () => {
+    try {
+      const { data } = await mlApi.get("/pipeline/train-status");
+      return data;
+    } catch (err) {
+      throw new Error(`Failed to fetch training status: ${err.response?.data?.detail || err.message}`);
+    }
+  },
+  
 
 };
 

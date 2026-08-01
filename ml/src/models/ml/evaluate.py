@@ -15,6 +15,7 @@ import yaml
 
 from src.models.ml.train import train_all_models, SAVED_MODELS_DIR
 from src.metrics.metrics import compute_metrics, format_metrics, is_better
+from src.pipeline import training_status
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # ml/src/models/ml/evaluate.py -> ml/
 
@@ -34,6 +35,8 @@ def evaluate_all():
         best_model_name (str)
     """
     fitted_models, X_train, X_test, y_train, y_test = train_all_models()
+
+    training_status.update(step="evaluating", progress=65, message="Evaluating models...")
 
     results = {}
     best_model_name = None

@@ -97,3 +97,25 @@ def get_years_present(region: str = None) -> list[int]:
         return sorted(years)
     finally:
         session.close()
+
+def delete_actual(region: str, year: int) -> bool:
+    """Deletes a single actuals row by region+year. Returns True if deleted."""
+    session = get_session()
+    try:
+        record = (
+            session.query(ActualIndicators)
+            .filter_by(region=region, year=year)
+            .first()
+        )
+        if not record:
+            return False
+        session.delete(record)
+        session.commit()
+        return True
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+        
