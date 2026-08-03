@@ -43,11 +43,9 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<AdminLogin />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Admin Login */}
-          <Route path="/admin/login" element={<AdminLogin />} />
           {/* USER ROUTES */}
           <Route element={<ProtectedRoute requiredRole="user" />}>
             <Route element={<UserLayout />}>

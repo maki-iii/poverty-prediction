@@ -53,6 +53,14 @@ export function useTimeline(region = "NCR") {
   return useAsync(() => PovertyService.getTimeline(region), [region]);
 }
 
+export function useFeatureImportance() {
+  return useAsync(() => PovertyService.getFeatureImportance(), []);
+}
+
+export function useTrainingRuns(limit = 50) {
+  return useAsync(() => PovertyService.getTrainingRuns(limit), [limit]);
+}
+
 // --- Pipeline trigger hook (mutation-style, not auto-fetching) ---
 
 export function usePipelineActions() {
@@ -85,5 +93,7 @@ export function usePipelineActions() {
     runFullPipeline: () => runAction(PovertyService.runFullPipeline),
     mergeNewActuals: (file) => runAction(() => PovertyService.mergeNewActuals(file)),
     deleteActual: (year, region) => runAction(() => PovertyService.deleteActual(year, region)),
+    
+    
   };
 }

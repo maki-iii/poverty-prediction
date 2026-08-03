@@ -15,6 +15,8 @@ router.get("/predictions/latest", PovertyController.getLatestPredictions);
 router.get("/models/comparison", PovertyController.getModelComparison);
 router.get("/timeline", PovertyController.getTimeline);
 router.delete("/actuals/:year", PovertyController.deleteActual);
+router.get("/models/feature-importance", PovertyController.getFeatureImportance);
+router.get("/training-runs", PovertyController.getTrainingRuns);
 
 // --- Pipeline triggers ---
 router.post("/pipeline/forecast", PovertyController.runForecast);

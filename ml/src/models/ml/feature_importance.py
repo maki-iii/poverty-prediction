@@ -79,6 +79,35 @@ def compare_forecast_years_to_training_range():
         print(f"{col:30s} {train_min:12.2f} {train_max:12.2f} "
               f"{vals[0]:10.2f} {vals[1]:10.2f} {vals[2]:10.2f}")
 
+def get_feature_importance_data() -> dict:
+    """
+    Same logic as show_feature_importance(), but returns structured data
+    for the API instead of printing to console.
+    """
+    model, model_name = load_best_model_and_name()
+
+    importances = {}
+    if hasattr(model, "feature_importances_"):
+        for feat, score in zip(FEATURE_COLUMNS, model.feature_importances_):
+            importances[feat] = round(float(score), 4)
+    elif hasattr(model, "named_steps") and "ridge" in getattr(model, "named_steps", {}):
+        for feat, coef in zip(FEATURE_COLUMNS, model.named_steps["ridge"].coef_):
+            importances[feat] = round(float(abs(coef)), 4)
+    else:
+        raise ValueError(f"Model type '{model_name}' doesn't expose importances/coefficients.")
+
+    # Sort descending by importance
+    importances = dict(sorted(importances.items(), key=lambda x: x[1], reverse=True))
+
+    top_feature = next(iter(importances))
+    top_score = importances[top_feature]
+
+    return {
+        "model_used": model_name,
+        "importances": importances,
+        "top_feature": top_feature,
+        "top_feature_pct": round(top_score * 100, 1),
+    }
 
 if __name__ == "__main__":
     show_feature_importance()

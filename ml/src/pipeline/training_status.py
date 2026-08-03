@@ -44,7 +44,8 @@ def update(step: str, progress: int, message: str):
         })
 
 
-def complete(best_model: str):
+def complete(best_model: str, results: dict = None, selection_metric: str = None,
+             prediction_years: str = None, triggered_by: str = None):
     with _lock:
         _status.update({
             "status": "completed",
@@ -54,14 +55,34 @@ def complete(best_model: str):
             "best_model": best_model,
         })
 
+    # Persist to training_runs history table
+    from src.database.repository.training_runs_repo import create_run
+    try:
+        create_run(
+            status="completed",
+            best_model=best_model,
+            selection_metric=selection_metric,
+            results=results,
+            prediction_years=prediction_years,
+            triggered_by=triggered_by,
+        )
+    except Exception as e:
+        print(f"[training_status] Warning: failed to save training run history: {e}")
 
-def fail(error: Exception):
+
+def fail(error: Exception, triggered_by: str = None):
     with _lock:
         _status.update({
             "status": "failed",
             "message": f"Failed: {error}",
             "error": str(error),
         })
+
+    from src.database.repository.training_runs_repo import create_run
+    try:
+        create_run(status="failed", error_message=str(error), triggered_by=triggered_by)
+    except Exception as e:
+        print(f"[training_status] Warning: failed to save training run history: {e}")
 
 
 def get_status() -> dict:

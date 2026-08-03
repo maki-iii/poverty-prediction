@@ -12,7 +12,6 @@ import pymysql
 
 from src.database.base import Base, engine, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 
-
 def create_database_if_not_exists():
     """Connects without selecting a DB, creates it if missing."""
     conn = pymysql.connect(
@@ -37,7 +36,7 @@ def create_database_if_not_exists():
 def create_tables():
     """Creates all tables registered on Base (actuals, forecasts, predictions)."""
     # Import models so they register themselves on Base.metadata
-    from src.database.models import actuals, forecasts, predictions, uploaded_datasets  # noqa: F401
+    from src.database.models import actuals, forecasts, predictions, uploaded_datasets, training_runs  # noqa: F401
 
     Base.metadata.create_all(engine)
     print("[init_db] Tables created: actuals, forecasts, predictions")

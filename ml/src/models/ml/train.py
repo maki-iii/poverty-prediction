@@ -49,7 +49,13 @@ def train_all_models():
         fitted_models (dict): {model_name: fitted BaseModel instance}
         X_train, X_test, y_train, y_test
     """
+    training_status.update(step="loading_dataset", progress=5, message="Loading dataset...")
     X, y, years = get_training_data()
+
+    training_status.update(step="preprocessing", progress=10, message="Preprocessing...")
+    # (validation/type-casting already happened inside get_training_data)
+
+    training_status.update(step="splitting", progress=15, message="Splitting dataset...")
     X_train, X_test, y_train, y_test = split_data(X, y)
 
     SAVED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -59,21 +65,23 @@ def train_all_models():
 
     fitted_models = {}
     for idx, model in enumerate(active_models):
-        progress = int(10 + (idx / total) * 50)  # training phase spans ~10-60%
+        progress = int(20 + (idx / total) * 40)  # training phase spans ~20-60%
+        display_name = model.name.replace("_", " ").title()
         training_status.update(
             step="training",
             progress=progress,
-            message=f"Training {model.name} ({idx + 1}/{total})...",
+            message=f"Training {display_name}...",
         )
 
         print(f"[train] Fitting {model.name}...")
         model.fit(X_train, y_train)
+        fitted_models[model.name] = model
 
+    training_status.update(step="saving", progress=62, message="Saving model...")
+    for model in fitted_models.values():
         save_path = SAVED_MODELS_DIR / f"{model.name}.pkl"
         model.save(save_path)
         print(f"[train] Saved {model.name} -> {save_path}")
-
-        fitted_models[model.name] = model
 
     return fitted_models, X_train, X_test, y_train, y_test
 

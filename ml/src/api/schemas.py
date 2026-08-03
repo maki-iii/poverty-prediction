@@ -141,3 +141,24 @@ class ProcessDatasetRequest(BaseModel):
     year: int
     inflation_rate: float
     poverty_incidence: float
+
+class FeatureImportanceOut(BaseModel):
+    model_used: str
+    importances: dict  # {feature_name: importance_score}, sorted descending
+    top_feature: str
+    top_feature_pct: float
+
+class TrainingRunOut(BaseModel):
+    id: int
+    status: str
+    best_model: Optional[str] = None
+    selection_metric: Optional[str] = None
+    results: Optional[dict] = None
+    prediction_years: Optional[str] = None
+    error_message: Optional[str] = None
+    triggered_by: Optional[str] = None
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True

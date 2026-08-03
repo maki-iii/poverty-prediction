@@ -63,6 +63,16 @@ const PovertyService = {
     return data;
   },
 
+  getFeatureImportance: async () => {
+    const { data } = await PovertyApi.getFeatureImportance();
+    return data;
+  },
+
+  getTrainingRuns: async (limit = 50) => {
+    const { data } = await PovertyApi.getTrainingRuns(limit);
+    return data;
+  },
+
 };
 
 export default PovertyService;

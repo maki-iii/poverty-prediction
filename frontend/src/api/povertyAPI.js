@@ -37,3 +37,9 @@ export const runFullPipeline = () =>
 
 export const getTrainStatus = () =>
   axiosInstance.get(`${BASE}/pipeline/train-status`);
+
+export const getFeatureImportance = () =>
+  axiosInstance.get(`${BASE}/models/feature-importance`);
+
+export const getTrainingRuns = (limit = 50) =>
+  axiosInstance.get(`${BASE}/training-runs`, { params: { limit } });

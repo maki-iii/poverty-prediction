@@ -158,6 +158,27 @@ const PovertyService = {
       throw new Error(`Failed to fetch training status: ${err.response?.data?.detail || err.message}`);
     }
   },
+
+  getFeatureImportance: async () => {
+    try {
+      const { data } = await mlApi.get("/models/feature-importance");
+      return data;
+    } catch (err) {
+      if (err.response?.status === 404) {
+        throw new Error("No trained model found. Train a model first.");
+      }
+      throw new Error(`Failed to fetch feature importance: ${err.response?.data?.detail || err.message}`);
+    }
+  },
+
+  getTrainingRuns: async (limit = 50) => {
+    try {
+      const { data } = await mlApi.get("/training-runs", { params: { limit } });
+      return data;
+    } catch (err) {
+      throw new Error(`Failed to fetch training history: ${err.response?.data?.detail || err.message}`);
+    }
+  },
   
 
 };

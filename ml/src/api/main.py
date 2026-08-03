@@ -36,7 +36,11 @@ from src.api.schemas import (
     PipelineRunResponse,
     ModelComparisonOut,
     MergeActualsResponse,
+    FeatureImportanceOut,
+    TrainingRunOut
 )
+
+from src.database.repository.training_runs_repo import list_runs
 
 from src.pipeline.dataset_management import (
     save_uploaded_file,
@@ -45,6 +49,7 @@ from src.pipeline.dataset_management import (
     remove_dataset,
 )
 from src.api.schemas import DatasetOut, MergeDatasetResponse, DeleteDatasetResponse
+from src.models.ml.feature_importance import get_feature_importance_data
 
 import json
 from pathlib import Path as _Path
@@ -171,7 +176,33 @@ def _run_training_background():
         training_status.update(step="predicting", progress=85, message="Generating predictions...")
         run_predict_pipeline()
 
-        training_status.complete(best_model_name)
+        # Load the comparison report to include in the history record
+        report_path = SAVED_MODELS_DIR / "model_comparison_results.json"
+        results = None
+        selection_metric = None
+        if report_path.exists():
+            with open(report_path, "r") as f:
+                report = json.load(f)
+                results = report.get("results")
+                selection_metric = report.get("selection_metric")
+
+        # Determine prediction year range from the latest forecast run
+        prediction_years = None
+        try:
+            df = get_forecasts(region="NCR")
+            if not df.empty:
+                years = sorted(df["year"].unique())
+                prediction_years = f"{years[0]}-{years[-1]}" if len(years) > 1 else str(years[0])
+        except Exception:
+            pass
+
+        training_status.update(step="finalizing", progress=98, message="Training Complete.")
+        training_status.complete(
+            best_model_name,
+            results=results,
+            selection_metric=selection_metric,
+            prediction_years=prediction_years,
+        )
     except Exception as e:
         training_status.fail(e)
 
@@ -317,3 +348,23 @@ def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/models/feature-importance", response_model=FeatureImportanceOut, tags=["models"])
+def get_feature_importance():
+    try:
+        return get_feature_importance_data()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="No trained model found. Run /pipeline/train first.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/training-runs", response_model=list[TrainingRunOut], tags=["pipeline"])
+def list_training_runs(limit: int = 50):
+    df = list_runs(limit=limit)
+    if df.empty:
+        return []
+    for col in ["started_at", "finished_at"]:
+        if col in df.columns:
+            df[col] = df[col].apply(lambda x: x.isoformat() if x is not None and str(x) != "NaT" else None)
+    return df.to_dict(orient="records")

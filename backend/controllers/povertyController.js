@@ -137,6 +137,28 @@ const PovertyController = {
     }
   },
 
+  // GET /api/poverty/models/feature-importance
+  getFeatureImportance: async (req, res) => {
+    try {
+      const data = await PovertyService.getFeatureImportance();
+      return res.status(200).json(data);
+    } catch (error) {
+      const notFound = error.message.includes("No trained model found");
+      return res.status(notFound ? 404 : 500).json({ message: error.message });
+    }
+  },
+
+  // GET /api/poverty/training-runs
+  getTrainingRuns: async (req, res) => {
+    try {
+      const { limit } = req.query;
+      const data = await PovertyService.getTrainingRuns(limit);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  },
+
 };
 
 module.exports = PovertyController;
