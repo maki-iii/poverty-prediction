@@ -11,7 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 
-export default function PovertyTimelineChart({ actuals, predictions }) {
+export default function PovertyTimelineChart({ actuals, predictions, compact = false }) {
   const chartData = useMemo(() => {
     if (!actuals || actuals.length === 0) return [];
 
@@ -51,8 +51,8 @@ export default function PovertyTimelineChart({ actuals, predictions }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-      <ResponsiveContainer width="100%" height={420}>
+    <div className={`bg-white border border-slate-200 rounded-xl shadow-sm ${compact ? "p-3.5" : "p-5"}`}>
+      <ResponsiveContainer width="100%" height={compact ? 350 : 450}>
         <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />

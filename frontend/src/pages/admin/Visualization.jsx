@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChartColumnBig, Maximize2 } from "lucide-react";
+import { ChartColumnBig, TrendingUp, ArrowLeftRight, CircleDot } from "lucide-react";
 import { useTimeline } from "../../hooks/usePoverty";
 
 import Loader from "../../components/common/Loader";
@@ -7,30 +7,15 @@ import Modal from "../../components/common/Modal";
 import PovertyTimelineChart from "../../components/admin/Visualization/PovertyTimelineChart";
 import KpiCards from "../../components/admin/Visualization/KpiCards";
 
-import MultiIndicatorChart, {
-  MultiIndicatorCharts,
-  MultiIndicatorTable,
-} from "../../components/admin/Visualization/MultiIndicatorChart";
-import YoyChangeChart, {
-  YoyChangeBars,
-  YoyChangeTable,
-} from "../../components/admin/Visualization/YoyChangeChart";
-import CorrelationScatter, {
-  CorrelationChart,
-  CorrelationTable,
-} from "../../components/admin/Visualization/CorrelationScatter";
+import { MultiIndicatorCharts, MultiIndicatorTable } from "../../components/admin/Visualization/MultiIndicatorChart";
+import { YoyChangeBars, YoyChangeTable } from "../../components/admin/Visualization/YoyChangeChart";
+import { CorrelationChart, CorrelationTable } from "../../components/admin/Visualization/CorrelationScatter";
 
-function ViewDetailsButton({ onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 text-[11px] font-semibold text-[#002366] hover:text-[#001a4d] transition-colors"
-    >
-      <Maximize2 className="w-3 h-3" />
-      View Details
-    </button>
-  );
-}
+const VIEW_BUTTONS = [
+  { key: "indicators", label: "Show Indicator Trends", icon: TrendingUp },
+  { key: "yoy", label: "Year-over-Year Change", icon: ArrowLeftRight },
+  { key: "correlation", label: "Indicator Correlation", icon: CircleDot },
+];
 
 export default function Visualization() {
   const { data, loading, error } = useTimeline();
@@ -41,26 +26,26 @@ export default function Visualization() {
   const predictions = data?.predictions;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-5">
+    <div className="p-5 max-w-7xl mx-auto space-y-3.5">
       {/* Header */}
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#002366] to-[#003a99] shadow-md shadow-[#002366]/20">
-          <ChartColumnBig className="w-4 h-4 text-white" />
+      <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#002366] to-[#003a99] shadow-sm shadow-[#002366]/20">
+          <ChartColumnBig className="w-3.5 h-3.5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-[#002366] tracking-tight">Visualization</h1>
-          <p className="text-[11px] text-slate-500">
+          <h1 className="text-base font-bold text-[#002366] tracking-tight">Visualization</h1>
+          <p className="text-[10px] text-slate-500">
             A full visual overview of poverty incidence and its drivers
           </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8">
+        <div className="flex justify-center py-6">
           <Loader />
         </div>
       ) : error ? (
-        <div className="text-center text-xs text-red-500 py-8 border border-dashed border-red-200 rounded-xl">
+        <div className="text-center text-xs text-red-500 py-6 border border-dashed border-red-200 rounded-xl">
           {error}
         </div>
       ) : (
@@ -70,50 +55,37 @@ export default function Visualization() {
 
           {/* Main timeline */}
           <section>
-            <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <h2 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Poverty Incidence Timeline (1997–2026)
             </h2>
-            <PovertyTimelineChart actuals={actuals} predictions={predictions} />
+            <PovertyTimelineChart actuals={actuals} predictions={predictions} compact />
           </section>
 
-          {/* Indicator trends -- compact preview + modal trigger */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                Indicator Trends Over Time
-              </p>
-              <ViewDetailsButton onClick={() => setOpenModal("indicators")} />
+          {/* Buttons that open each chart in a modal -- no previews on this page */}
+          <section>
+            <h2 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              More Visualizations
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {VIEW_BUTTONS.map((btn) => {
+                const Icon = btn.icon;
+                return (
+                  <button
+                    key={btn.key}
+                    onClick={() => setOpenModal(btn.key)}
+                    className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg
+                               px-3 py-2.5 shadow-sm hover:shadow-md hover:border-[#002366]/30
+                               active:scale-[0.98] transition-all duration-150"
+                  >
+                    <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#002366]/10 shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-[#002366]" />
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-700 text-left">{btn.label}</span>
+                  </button>
+                );
+              })}
             </div>
-            <MultiIndicatorCharts actuals={actuals} />
-          </div>
-
-          {/* YoY change + correlation, side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                  Year-over-Year Change
-                </p>
-                <ViewDetailsButton onClick={() => setOpenModal("yoy")} />
-              </div>
-              <YoyChangeBars actuals={actuals} height={200} />
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                  Indicator Correlation
-                </p>
-                <ViewDetailsButton onClick={() => setOpenModal("correlation")} />
-              </div>
-              <CorrelationChart
-                actuals={actuals}
-                selectedIndicator={correlationIndicator}
-                onChangeIndicator={setCorrelationIndicator}
-                height={200}
-              />
-            </div>
-          </div>
+          </section>
         </>
       )}
 

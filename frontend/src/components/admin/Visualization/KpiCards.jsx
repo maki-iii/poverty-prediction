@@ -74,7 +74,7 @@ export default function KpiCards({ actuals, predictions }) {
         return (
           <div
             key={card.label}
-            className={`bg-gradient-to-br ${card.color} rounded-xl p-4 text-white shadow-md`}
+            className={`bg-gradient-to-br ${card.color} rounded-xl p-3 text-white shadow-md`}
           >
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
@@ -82,7 +82,7 @@ export default function KpiCards({ actuals, predictions }) {
               </p>
               <Icon className="w-4 h-4 text-white/60" />
             </div>
-            <p className="text-2xl font-black leading-none">{card.value}</p>
+            <p className="text-xl font-black leading-none">{card.value}</p>
             {card.subtext && <p className="text-[10px] text-white/70 mt-1.5">{card.subtext}</p>}
           </div>
         );

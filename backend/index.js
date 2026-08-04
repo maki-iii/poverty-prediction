@@ -9,6 +9,7 @@ const seedRoute = require("./routes/seedRoute");
 const otpRoutes = require("./routes/otp/otpRoute");
 const povertyRoutes = require("./routes/povertyRoutes");
 const datasetRoutes = require("./routes/datasetRoute");
+const auditLogRoutes = require("./routes/auditLogRoute");
 
 const app = express();
 
@@ -34,6 +35,8 @@ app.use("/api/seed", seedRoute);
 app.use("/api/otp", otpRoutes);
 app.use("/api/poverty", povertyRoutes);
 app.use("/api/datasets", datasetRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
+
 // DB Connection
 db.getConnection()
   .then((conn) => {

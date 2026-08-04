@@ -1,4 +1,5 @@
 const PovertyService = require("../services/povertyService");
+const AuditLogService = require("../services/auditLogService");
 
 const PovertyController = {
 
@@ -19,6 +20,14 @@ const PovertyController = {
       const { year } = req.params;
       const { region } = req.query;
       const result = await PovertyService.deleteActual(region || "NCR", year);
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.ACTUALS_DELETION,
+        details: `Deleted actuals row for ${region || "NCR"} ${year}`,
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       const notFound = error.message.includes("No actuals row found");
@@ -78,6 +87,14 @@ const PovertyController = {
   runForecast: async (req, res) => {
     try {
       const result = await PovertyService.runForecast();
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.FORECAST,
+        details: "Ran ARIMA forecasting for indicator inputs",
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });
@@ -88,6 +105,14 @@ const PovertyController = {
   runTrainAndEvaluate: async (req, res) => {
     try {
       const result = await PovertyService.runTrainAndEvaluate();
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.TRAINING,
+        details: "Started model training run",
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });
@@ -98,6 +123,14 @@ const PovertyController = {
   runPredict: async (req, res) => {
     try {
       const result = await PovertyService.runPredict();
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.PREDICT,
+        details: "Generated poverty incidence predictions",
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });
@@ -108,6 +141,14 @@ const PovertyController = {
   runFullPipeline: async (req, res) => {
     try {
       const result = await PovertyService.runFullPipeline();
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.RUN_FULL_PIPELINE,
+        details: "Ran full pipeline (forecast -> train -> evaluate -> predict)",
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });
@@ -121,6 +162,14 @@ const PovertyController = {
         return res.status(400).json({ message: "No file uploaded" });
       }
       const result = await PovertyService.mergeNewActuals(req.file.buffer, req.file.originalname);
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.ACTUALS_MERGE,
+        details: `Merged actuals file "${req.file.originalname}"`,
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });

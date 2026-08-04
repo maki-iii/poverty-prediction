@@ -14,6 +14,6 @@ router.post("/upload", verifyToken, verifyAdmin, upload.single("file"), DatasetC
 router.get("/", verifyToken,verifyAdmin, DatasetController.listDatasets);
 router.post("/:id/merge", verifyToken, verifyAdmin, DatasetController.mergeDataset);
 router.delete("/:id", verifyToken, verifyAdmin, DatasetController.deleteDataset);
-router.post("/:id/process", DatasetController.processDataset);
+router.post("/:id/process", verifyToken, verifyAdmin, DatasetController.processDataset);
 
 module.exports = router;

@@ -38,55 +38,60 @@ import Unauthorized from "./pages/Unauthorized";
 import UserLayout from "./layout/UserLayout";
 import AdminLayout from "./layout/AdminLayout";
 
+// Context
+import { ToastProvider } from "./context/ToastContext";
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<AdminLogin />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
+    <ToastProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<AdminLogin />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* USER ROUTES */}
-          <Route element={<ProtectedRoute requiredRole="user" />}>
-            <Route element={<UserLayout />}>
-              <Route path="/user/dashboard" element={<UserDashboard />} />
-              <Route path="/user/dataset" element={<UserDataset />} />
-              <Route path="/user/data" element={<UserData />} />
-              <Route path="/user/methods" element={<UserMethods />} />
-              <Route path="/user/forecasting" element={<UserForecasting />} />
-              <Route path="/user/analysis" element={<UserAnalysis />} />
-              <Route path="/user/data-visualization" element={<UserDataVisualization />} />
+            {/* USER ROUTES */}
+            <Route element={<ProtectedRoute requiredRole="user" />}>
+              <Route element={<UserLayout />}>
+                <Route path="/user/dashboard" element={<UserDashboard />} />
+                <Route path="/user/dataset" element={<UserDataset />} />
+                <Route path="/user/data" element={<UserData />} />
+                <Route path="/user/methods" element={<UserMethods />} />
+                <Route path="/user/forecasting" element={<UserForecasting />} />
+                <Route path="/user/analysis" element={<UserAnalysis />} />
+                <Route path="/user/data-visualization" element={<UserDataVisualization />} />
 
-              {/* Default User Route */}
-              <Route path="/user" element={<Navigate to="/user/dashboard" replace />} />
+                {/* Default User Route */}
+                <Route path="/user" element={<Navigate to="/user/dashboard" replace />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* ADMIN ROUTES */}
-          <Route element={<ProtectedRoute requiredRole="admin" />}>
-            <Route element={<AdminLayout />}>
-              <Route path="/admin/dashboard" element={<Dashboard />} />
-              <Route path="/admin/dataset-management" element={<DatasetManagement />} />
-              <Route path="/admin/data" element={<Data />} />
-              <Route path="/admin/methods" element={<Methods />} />
-              <Route path="/admin/model-training" element={<ModelTraining />} />
-              <Route path="/admin/forecasting" element={<Forecasting />} />
-              <Route path="/admin/model-evaluation" element={<ModelEvaluation />} />
-              <Route path="/admin/analysis" element={<Analysis />} />
-              <Route path="/admin/visualization" element={<Visualization />} />
-              <Route path="/admin/user-management" element={<UserManagement />} />
-              <Route path="/admin/audit-logs" element={<AuditLogs />} />
+            {/* ADMIN ROUTES */}
+            <Route element={<ProtectedRoute requiredRole="admin" />}>
+              <Route element={<AdminLayout />}>
+                <Route path="/admin/dashboard" element={<Dashboard />} />
+                <Route path="/admin/dataset-management" element={<DatasetManagement />} />
+                <Route path="/admin/data" element={<Data />} />
+                <Route path="/admin/methods" element={<Methods />} />
+                <Route path="/admin/model-training" element={<ModelTraining />} />
+                <Route path="/admin/forecasting" element={<Forecasting />} />
+                <Route path="/admin/model-evaluation" element={<ModelEvaluation />} />
+                <Route path="/admin/analysis" element={<Analysis />} />
+                <Route path="/admin/visualization" element={<Visualization />} />
+                <Route path="/admin/user-management" element={<UserManagement />} />
+                <Route path="/admin/audit-logs" element={<AuditLogs />} />
 
-              {/* Default Admin Route */}
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                {/* Default Admin Route */}
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* FALLBACK ROUTE */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+            {/* FALLBACK ROUTE */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 

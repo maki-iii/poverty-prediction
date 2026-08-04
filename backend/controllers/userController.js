@@ -53,14 +53,10 @@ const UserController = {
   createUser: async (req, res) => {
     try {
       const { name, username, password, email, address, role } = req.body;
-      const result = await UserService.createUser({
-        name,
-        username,
-        password,
-        email,
-        address,
-        role
-      });
+      const result = await UserService.createUser(
+        { name, username, password, email, address, role },
+        req.user // actor -- the logged-in admin creating this user
+      );
       return res.status(201).json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -196,7 +192,11 @@ const UserController = {
     try {
       const { id } = req.params;
       const { name, address, email } = req.body;
-      const result = await UserService.updateUser(id, { name, address, email });
+      const result = await UserService.updateUser(
+        id,
+        { name, address, email },
+        req.user // actor
+      );
       return res.status(200).json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -214,7 +214,8 @@ const UserController = {
         id,
         oldPassword,
         newPassword,
-        isAdmin
+        isAdmin,
+        req.user // actor
       );
       return res.status(200).json(result);
     } catch (error) {
@@ -222,16 +223,16 @@ const UserController = {
     }
   },
 
-  // Delete user
+ // Delete user
   deleteUser: async (req, res) => {
     try {
       const { id } = req.params;
-      const result = await UserService.deleteUser(id);
+      const result = await UserService.deleteUser(id, req.user); // actor
       return res.status(200).json(result);
     } catch (error) {
       return res.status(404).json({ message: error.message });
     }
-  }
+  },
 };
 
 module.exports = UserController;

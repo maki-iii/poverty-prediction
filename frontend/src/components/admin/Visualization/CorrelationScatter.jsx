@@ -95,7 +95,7 @@ export function CorrelationChart({ actuals, selectedIndicator, onChangeIndicator
             tick={{ fontSize: 11 }}
             label={{ value: indicatorLabel, position: "insideBottom", offset: -5, fontSize: 10, fill: "#94a3b8" }}
           />
-          <YAxis type="number" dataKey="y" name="Poverty Incidence" unit="%" tick={{ fontSize: 11 }} />
+          <YAxis type="number" dataKey="y" name="Poverty Incidence" tick={{ fontSize: 11 }} />
           <ZAxis range={[60, 60]} />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}

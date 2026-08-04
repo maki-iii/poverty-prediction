@@ -68,7 +68,7 @@ export default function DatasetManagement() {
     pageSize: pendingPageSize,
     goToPage: goToPendingPage,
     resetPage: resetPendingPage,
-  } = usePagination(filteredPending, 10);
+  } = usePagination(filteredPending, 5);
 
   const {
     paginatedItems: paginatedProcessed,
@@ -77,7 +77,7 @@ export default function DatasetManagement() {
     pageSize: processedPageSize,
     goToPage: goToProcessedPage,
     resetPage: resetProcessedPage,
-  } = usePagination(filteredProcessed, 10);
+  } = usePagination(filteredProcessed, 5);
 
   // Reset both tables to page 1 whenever filters change
   useEffect(() => {

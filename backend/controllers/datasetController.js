@@ -1,4 +1,5 @@
 const DatasetService = require("../services/datasetService");
+const AuditLogService = require("../services/auditLogService");
 
 const DatasetController = {
 
@@ -10,6 +11,14 @@ const DatasetController = {
       }
       const uploadedBy = req.user?.username || null;
       const result = await DatasetService.uploadDataset(req.file.buffer, req.file.originalname, uploadedBy);
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.UPLOAD,
+        details: `Uploaded dataset "${req.file.originalname}"`,
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });
@@ -32,6 +41,14 @@ const DatasetController = {
     try {
       const { id } = req.params;
       const result = await DatasetService.mergeDataset(id);
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.MERGE,
+        details: `Merged dataset id=${id} into actuals`,
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       const notFound = error.message.includes("not found");
@@ -46,6 +63,14 @@ const DatasetController = {
     try {
       const { id } = req.params;
       const result = await DatasetService.deleteDataset(id);
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.DATASET_DELETION,
+        details: `Deleted dataset id=${id}`,
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       const notFound = error.message.includes("not found");
@@ -71,6 +96,14 @@ const DatasetController = {
         inflationRate,
         povertyIncidence,
       });
+
+      await AuditLogService.log({
+        userId: req.user?.id ?? null,
+        username: req.user?.username || null,
+        action: AuditLogService.ACTIONS.PROCESS,
+        details: `Processed dataset id=${id} (${surveyType}, year ${year})`,
+      });
+
       return res.status(200).json(result);
     } catch (error) {
       const notFound = error.message.includes("not found");

@@ -1,8 +1,8 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const admin = require("../configs/firebaseAdmin");
+const AuditLogService = require("./auditLogService");
 
-// Password validation
 const validatePassword = (password) => {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
   return regex.test(password);
@@ -14,7 +14,6 @@ const UserService = {
     let user = await User.findByEmail(email);
 
     if (!user) {
-      // generate unique username
       const generateUsername = async (name) => {
         const firstName = name.split(" ")[0].toLowerCase();
         let username;
@@ -33,13 +32,20 @@ const UserService = {
         name,
         email,
         username: await generateUsername(name),
-        password: uid,   
-        uid: uid,        
+        password: uid,
+        uid: uid,
         address: "N/A",
         role: "user",
       });
 
       user = await User.findById(insertId);
+
+      await AuditLogService.log({
+        userId: user.id,
+        username: user.username,
+        action: AuditLogService.ACTIONS.USER_CREATION,
+        details: `Account created via social login (${email})`,
+      });
     }
 
     return {
@@ -52,7 +58,7 @@ const UserService = {
     };
   },
 
-  // Register user
+  // Register user without role
   register: async ({ name, username, password, email, address }) => {
     if (!name || !username || !password || !email || !address) {
       throw new Error("Please fill all the fields!");
@@ -83,14 +89,21 @@ const UserService = {
       role: "user"
     });
 
+    await AuditLogService.log({
+      userId,
+      username,
+      action: AuditLogService.ACTIONS.USER_CREATION,
+      details: "Self-registered account",
+    });
+
     return {
       message: "User registered successfully",
       userId
     };
   },
 
-  // Create user with role
-  createUser: async ({ name, username, password, email, address, role }) => {
+  // Create user with role (admin action)
+  createUser: async ({ name, username, password, email, address, role }, actor = null) => {
     if (!name || !username || !password || !email || !address || !role) {
       throw new Error("Please fill all the fields!");
     }
@@ -113,6 +126,13 @@ const UserService = {
       email,
       address,
       role
+    });
+
+    await AuditLogService.log({
+      userId: actor?.id ?? null,
+      username: actor?.username || username,
+      action: AuditLogService.ACTIONS.USER_CREATION,
+      details: `Created user "${username}" (role: ${role})`,
     });
 
     return {
@@ -146,7 +166,6 @@ const UserService = {
     };
   },
 
-  // Get single user profile
   getProfile: async (id) => {
     const user = await User.findById(id);
 
@@ -157,13 +176,12 @@ const UserService = {
     return user;
   },
 
-  // Get all users
   getAllUsers: async () => {
     return await User.getAll();
   },
 
   // Update user info
-  updateUser: async (id, { name, address, email }) => {
+  updateUser: async (id, { name, address, email }, actor = null) => {
     if (!name || !address || !email) {
       throw new Error("Please fill all the fields!");
     }
@@ -174,13 +192,20 @@ const UserService = {
       throw new Error("User not found or no changes made");
     }
 
+    await AuditLogService.log({
+      userId: actor?.id ?? id,
+      username: actor?.username || null,
+      action: AuditLogService.ACTIONS.USER_UPDATE,
+      details: `Updated user id=${id}`,
+    });
+
     return {
       message: "User updated successfully"
     };
   },
 
   // Change password (authenticated user or admin)
-  changePassword: async (id, oldPassword, newPassword, isAdmin = false) => {
+  changePassword: async (id, oldPassword, newPassword, isAdmin = false, actor = null) => {
     if (!newPassword) {
       throw new Error("New password is required");
     }
@@ -193,6 +218,14 @@ const UserService = {
     if (isAdmin) {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await User.updatePassword(id, hashedPassword);
+
+      await AuditLogService.log({
+        userId: actor?.id ?? null,
+        username: actor?.username || null,
+        action: AuditLogService.ACTIONS.USER_CHANGE_PASSWORD,
+        details: `Admin changed password for user id=${id}`,
+      });
+
       return { message: "Password changed successfully" };
     }
 
@@ -207,6 +240,13 @@ const UserService = {
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.updatePassword(id, hashedPassword);
+
+    await AuditLogService.log({
+      userId: user.id,
+      username: user.username,
+      action: AuditLogService.ACTIONS.USER_CHANGE_PASSWORD,
+      details: "Self-service password change",
+    });
 
     return { message: "Password changed successfully" };
   },
@@ -227,14 +267,20 @@ const UserService = {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.updatePassword(user.id, hashedPassword);
 
+    await AuditLogService.log({
+      userId: user.id,
+      username: user.username,
+      action: AuditLogService.ACTIONS.USER_CHANGE_PASSWORD,
+      details: "Password reset via forgot-password flow",
+    });
+
     return { message: "Password reset successfully" };
   },
 
   // Delete user
-  deleteUser: async (id) => {
+  deleteUser: async (id, actor = null) => {
     const user = await User.findById(id);
 
-    // delete from firebase if has uid
     if (user && user.uid) {
       await admin.auth().deleteUser(user.uid);
     }
@@ -244,6 +290,13 @@ const UserService = {
     if (affectedRows === 0) {
       throw new Error("User not found");
     }
+
+    await AuditLogService.log({
+      userId: actor?.id ?? null,
+      username: actor?.username || null,
+      action: AuditLogService.ACTIONS.USER_DELETION,
+      details: `Deleted user "${user?.username || id}" (id=${id})`,
+    });
 
     return { message: "User deleted successfully" };
   }
