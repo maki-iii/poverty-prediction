@@ -128,11 +128,11 @@ const UserService = {
       role
     });
 
-    await AuditLogService.log({
+  await AuditLogService.log({
       userId: actor?.id ?? null,
       username: actor?.username || username,
       action: AuditLogService.ACTIONS.USER_CREATION,
-      details: `Created user "${username}" (role: ${role})`,
+      details: `Created user "${username}"`,
     });
 
     return {
@@ -180,11 +180,12 @@ const UserService = {
     return await User.getAll();
   },
 
-  // Update user info
-  updateUser: async (id, { name, address, email }, actor = null) => {
+updateUser: async (id, { name, address, email }, actor = null) => {
     if (!name || !address || !email) {
       throw new Error("Please fill all the fields!");
     }
+
+    const existingUser = await User.findById(id);
 
     const affectedRows = await User.update(id, { name, address, email });
 
@@ -196,7 +197,7 @@ const UserService = {
       userId: actor?.id ?? id,
       username: actor?.username || null,
       action: AuditLogService.ACTIONS.USER_UPDATE,
-      details: `Updated user id=${id}`,
+      details: `Updated user "${existingUser?.username || name}"`,
     });
 
     return {
@@ -213,7 +214,7 @@ const UserService = {
     const user = await User.findByIdWithPassword(id);
     if (!user) {
       throw new Error("User not found");
-    }
+    } 
 
     if (isAdmin) {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -223,7 +224,7 @@ const UserService = {
         userId: actor?.id ?? null,
         username: actor?.username || null,
         action: AuditLogService.ACTIONS.USER_CHANGE_PASSWORD,
-        details: `Admin changed password for user id=${id}`,
+        details: `Changed password for user "${user.username}"`,
       });
 
       return { message: "Password changed successfully" };
@@ -295,7 +296,7 @@ const UserService = {
       userId: actor?.id ?? null,
       username: actor?.username || null,
       action: AuditLogService.ACTIONS.USER_DELETION,
-      details: `Deleted user "${user?.username || id}" (id=${id})`,
+      details: `Deleted user "${user?.username || "unknown"}"`,
     });
 
     return { message: "User deleted successfully" };

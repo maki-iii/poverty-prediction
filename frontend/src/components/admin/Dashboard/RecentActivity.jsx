@@ -4,7 +4,7 @@ import AuditLogService from "../../../services/auditLogService";
 import ActionBadge from "../Audit_logs/ActionBadge";
 import Loader from "../../common/Loader";
 
-export default function RecentActivity({ limit = 6 }) {
+export default function RecentActivity({ limit = 5 }) {
   const [logs, setLogs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

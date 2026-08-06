@@ -141,6 +141,7 @@ def merge_dataset(dataset_id: int) -> dict:
 
         return {
             "dataset_id": dataset_id,
+            "filename": record["original_filename"],
             "rows_merged": 1,
             "details": [{"year": actuals_row["year"], "result": outcome}],
         }
@@ -149,14 +150,18 @@ def merge_dataset(dataset_id: int) -> dict:
         raise
 
 
-def remove_dataset(dataset_id: int) -> bool:
-    """Deletes a dataset record and its file from disk."""
+def remove_dataset(dataset_id: int) -> dict:
+    """Deletes a dataset record and its file from disk. Returns dict with filename, or None if not found."""
     record = get_dataset(dataset_id)
     if record is None:
-        return False
+        return None
 
     file_path = PROJECT_ROOT / record["stored_path"]
     if file_path.exists():
         file_path.unlink()
 
-    return delete_dataset(dataset_id)
+    deleted = delete_dataset(dataset_id)
+    if not deleted:
+        return None
+
+    return {"filename": record["original_filename"]}

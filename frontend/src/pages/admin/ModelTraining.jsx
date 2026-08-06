@@ -9,25 +9,48 @@ import TrainButton from "../../components/admin/Model_training/TrainButton";
 import TrainingStepsList from "../../components/admin/Model_training/TrainingStepsList";
 import PredictionsBarChart from "../../components/admin/Model_training/PredictionBarChart";
 import PredictionsResultTable from "../../components/admin/Model_training/PredictionsResultTable";
+import { useToast } from "../../context/ToastContext";
 
 export default function ModelTraining() {
   const { data: predictions, loading, error: fetchError, refetch } = useLatestPredictions();
   const { status: liveStatus, starting, startError, start, isRunning } = useTrainingProgress();
   const { data: latestRuns } = useTrainingRuns(1);
+  const toast = useToast();
 
   const hasRefetchedRef = useRef(false);
+  const hasNotifiedRef = useRef(false);
 
   const handleTrain = async () => {
     hasRefetchedRef.current = false;
-    await start(PovertyService.runTrainAndEvaluate);
+    hasNotifiedRef.current = false;
+    try {
+      await start(PovertyService.runTrainAndEvaluate);
+      toast.info("Training started — this may take a moment.");
+    } catch (err) {
+      toast.error(err.message || "Failed to start training");
+    }
   };
 
+  // Refetch predictions exactly once when a live training run finishes
   useEffect(() => {
     if (liveStatus?.status === "completed" && !hasRefetchedRef.current) {
       hasRefetchedRef.current = true;
       refetch();
     }
   }, [liveStatus, refetch]);
+
+  // Notify once when a live run completes or fails
+  useEffect(() => {
+    if (!liveStatus || hasNotifiedRef.current) return;
+
+    if (liveStatus.status === "completed") {
+      hasNotifiedRef.current = true;
+      toast.success(`Training complete. Best model: ${liveStatus.best_model}`);
+    } else if (liveStatus.status === "failed") {
+      hasNotifiedRef.current = true;
+      toast.error(liveStatus.message || "Training failed");
+    }
+  }, [liveStatus, toast]);
 
   const displayStatus = useMemo(() => {
     if (liveStatus) return liveStatus;

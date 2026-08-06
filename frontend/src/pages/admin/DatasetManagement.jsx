@@ -12,12 +12,14 @@ import UploadButton from "../../components/admin/Dataset_management/UploadButton
 import ProcessModal from "../../components/admin/Dataset_management/ProcessModal";
 import PendingDatasetsTable from "../../components/admin/Dataset_management/PendingDatasetTable";
 import ProcessedDatasetsTable from "../../components/admin/Dataset_management/ProcessedDatasetTable";
+import { useToast } from "../../context/ToastContext";
 
 export default function DatasetManagement() {
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const toast = useToast();
 
   const {
     data: pendingDatasets,
@@ -87,29 +89,48 @@ export default function DatasetManagement() {
 
   // --- Action handlers ---
   const handleUpload = async (file) => {
-    await uploadDataset(file);
-    refetchPending();
+    try {
+      await uploadDataset(file);
+      toast.success(`"${file.name}" uploaded successfully`);
+      refetchPending();
+    } catch (err) {
+      toast.error(err.message || "Failed to upload dataset");
+      throw err;
+    }
   };
 
   const handleProcess = async (datasetId, payload) => {
-    await processDataset(datasetId, payload);
-    refetchPending();
-    refetchProcessed();
+    try {
+      await processDataset(datasetId, payload);
+      toast.success("Dataset processed successfully");
+      refetchPending();
+      refetchProcessed();
+    } catch (err) {
+      toast.error(err.message || "Failed to process dataset");
+      throw err;
+    }
   };
 
   const handleConfirmedAction = async () => {
     if (!confirmAction) return;
     const { type, dataset } = confirmAction;
 
-    if (type === "delete") {
-      await deleteDataset(dataset.id);
-      refetchPending();
-      refetchProcessed();
-    } else if (type === "merge") {
-      await mergeDataset(dataset.id);
-      refetchProcessed();
+    try {
+      if (type === "delete") {
+        await deleteDataset(dataset.id);
+        toast.success(`"${dataset.original_filename}" deleted`);
+        refetchPending();
+        refetchProcessed();
+      } else if (type === "merge") {
+        await mergeDataset(dataset.id);
+        toast.success(`"${dataset.original_filename}" merged into actuals`);
+        refetchProcessed();
+      }
+    } catch (err) {
+      toast.error(err.message || `Failed to ${type} dataset`);
+    } finally {
+      setConfirmAction(null);
     }
-    setConfirmAction(null);
   };
 
   const confirmModalConfig = useMemo(() => {

@@ -46,7 +46,7 @@ const DatasetController = {
         userId: req.user?.id ?? null,
         username: req.user?.username || null,
         action: AuditLogService.ACTIONS.MERGE,
-        details: `Merged dataset id=${id} into actuals`,
+        details: `Merged "${result.filename}" into actuals`,
       });
 
       return res.status(200).json(result);
@@ -68,7 +68,7 @@ const DatasetController = {
         userId: req.user?.id ?? null,
         username: req.user?.username || null,
         action: AuditLogService.ACTIONS.DATASET_DELETION,
-        details: `Deleted dataset id=${id}`,
+        details: `Deleted "${result.filename}"`,
       });
 
       return res.status(200).json(result);
@@ -101,7 +101,7 @@ const DatasetController = {
         userId: req.user?.id ?? null,
         username: req.user?.username || null,
         action: AuditLogService.ACTIONS.PROCESS,
-        details: `Processed dataset id=${id} (${surveyType}, year ${year})`,
+        details: `Processed "${result.original_filename}"`,
       });
 
       return res.status(200).json(result);

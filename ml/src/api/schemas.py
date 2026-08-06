@@ -129,12 +129,14 @@ class MergeDatasetResponse(BaseModel):
     status: str
     message: str
     dataset_id: int
+    filename: str
     rows_merged: int
 
 
 class DeleteDatasetResponse(BaseModel):
     status: str
     message: str
+    filename: str
 
 class ProcessDatasetRequest(BaseModel):
     survey_type: str

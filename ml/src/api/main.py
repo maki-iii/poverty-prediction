@@ -314,6 +314,7 @@ def merge_dataset_endpoint(dataset_id: int):
             message=f"Merged {result['rows_merged']} row(s) into actuals. "
                     f"Run /pipeline/run-full to refresh forecasts/predictions.",
             dataset_id=dataset_id,
+            filename=result["filename"],
             rows_merged=result["rows_merged"],
         )
     except FileNotFoundError as e:
@@ -326,10 +327,14 @@ def merge_dataset_endpoint(dataset_id: int):
 
 @app.delete("/datasets/{dataset_id}", response_model=DeleteDatasetResponse, tags=["datasets"])
 def delete_dataset_endpoint(dataset_id: int):
-    deleted = remove_dataset(dataset_id)
-    if not deleted:
+    result = remove_dataset(dataset_id)
+    if not result:
         raise HTTPException(status_code=404, detail=f"Dataset id={dataset_id} not found")
-    return DeleteDatasetResponse(status="success", message=f"Dataset id={dataset_id} deleted.")
+    return DeleteDatasetResponse(
+        status="success",
+        message=f"Dataset \"{result['filename']}\" deleted.",
+        filename=result["filename"],
+    )
 
 @app.post("/datasets/{dataset_id}/process", response_model=DatasetOut, tags=["datasets"])
 def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest):

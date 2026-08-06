@@ -41,13 +41,23 @@ import AdminLayout from "./layout/AdminLayout";
 // Context
 import { ToastProvider } from "./context/ToastContext";
 
+// Redirect if logged in
+import RedirectIfAuthenticated from "./routes/RedirectIfAuthenticated"; 
+
 function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<AdminLogin />} />
+            <Route
+              path="/"
+              element={
+                <RedirectIfAuthenticated>
+                  <AdminLogin />
+                </RedirectIfAuthenticated>
+              }
+            />
             <Route path="/unauthorized" element={<Unauthorized />} />
 
             {/* USER ROUTES */}

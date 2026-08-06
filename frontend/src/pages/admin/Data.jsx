@@ -9,11 +9,13 @@ import ConfirmModal from "../../components/common/ConfirmModal";
 import DataTable from "../../components/admin/Data/DataTable";
 import Pagination from "../../components/common/Pagination";
 import usePagination from "../../hooks/usePagination";
+import { useToast } from "../../context/ToastContext";
 
 export default function Data() {
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [rowToDelete, setRowToDelete] = useState(null);
+  const toast = useToast();
 
   const { data: actuals, loading, error, refetch } = useActuals();
   const { deleteActual, running } = usePipelineActions();
@@ -53,9 +55,15 @@ export default function Data() {
 
   const handleConfirmDelete = async () => {
     if (!rowToDelete) return;
-    await deleteActual(rowToDelete.year, rowToDelete.region);
-    refetch();
-    setRowToDelete(null);
+    try {
+      await deleteActual(rowToDelete.year, rowToDelete.region);
+      toast.success(`Deleted ${rowToDelete.region} ${rowToDelete.year} from actuals`);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete row");
+    } finally {
+      setRowToDelete(null);
+    }
   };
 
   return (
