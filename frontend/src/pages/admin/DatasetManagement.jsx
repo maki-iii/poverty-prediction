@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Database, FileClock, CheckCircle2 } from "lucide-react";
 import { useDatasets, useDatasetActions } from "../../hooks/useDatasets";
+import useProcessingProgress from "../../hooks/useProcessingProgress";
 
 import SearchBar from "../../components/common/SearchBar";
 import DateRangeFilter from "../../components/common/DateRangeFilter";
@@ -12,6 +13,8 @@ import UploadButton from "../../components/admin/Dataset_management/UploadButton
 import ProcessModal from "../../components/admin/Dataset_management/ProcessModal";
 import PendingDatasetsTable from "../../components/admin/Dataset_management/PendingDatasetTable";
 import ProcessedDatasetsTable from "../../components/admin/Dataset_management/ProcessedDatasetTable";
+import UploadProgressBar from "../../components/admin/Dataset_management/UploadProgressBar";
+import ProcessingProgressBar from "../../components/admin/Dataset_management/ProcessingProgressBar";
 import { useToast } from "../../context/ToastContext";
 
 export default function DatasetManagement() {
@@ -19,6 +22,7 @@ export default function DatasetManagement() {
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const toast = useToast();
 
   const {
@@ -37,6 +41,12 @@ export default function DatasetManagement() {
 
   const { uploadDataset, processDataset, mergeDataset, deleteDataset, running } =
     useDatasetActions();
+
+  const {
+    status: processStatus,
+    start: startProcessing,
+    reset: resetProcessing,
+  } = useProcessingProgress();
 
   // --- Client-side filtering (search + date range) ---
   const filterDatasets = (list) => {
@@ -87,26 +97,38 @@ export default function DatasetManagement() {
     resetProcessedPage();
   }, [search, dateRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // React once when a processing job (started via handleProcess) finishes
+  useEffect(() => {
+    if (processStatus?.status === "completed") {
+      toast.success("Dataset processed successfully");
+      refetchPending();
+      refetchProcessed();
+    } else if (processStatus?.status === "failed") {
+      toast.error(processStatus.message || "Processing failed");
+    }
+  }, [processStatus?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- Action handlers ---
   const handleUpload = async (file) => {
+    setUploadProgress(0);
     try {
-      await uploadDataset(file);
+      await uploadDataset(file, (percent) => setUploadProgress(percent));
       toast.success(`"${file.name}" uploaded successfully`);
       refetchPending();
     } catch (err) {
       toast.error(err.message || "Failed to upload dataset");
       throw err;
+    } finally {
+      setUploadProgress(null);
     }
   };
 
   const handleProcess = async (datasetId, payload) => {
+    resetProcessing();
     try {
-      await processDataset(datasetId, payload);
-      toast.success("Dataset processed successfully");
-      refetchPending();
-      refetchProcessed();
+      await startProcessing(datasetId, () => processDataset(datasetId, payload));
     } catch (err) {
-      toast.error(err.message || "Failed to process dataset");
+      toast.error(err.message || "Failed to start processing");
       throw err;
     }
   };
@@ -173,8 +195,14 @@ export default function DatasetManagement() {
             <p className="text-xs text-slate-500">Upload, process, and merge survey data</p>
           </div>
         </div>
-        <UploadButton onUpload={handleUpload} uploading={running} />
+        <UploadButton onUpload={handleUpload} uploading={uploadProgress !== null} />
       </div>
+
+      {/* Progress bars */}
+      {uploadProgress !== null && <UploadProgressBar progress={uploadProgress} />}
+      {processStatus && processStatus.status !== "idle" && (
+        <ProcessingProgressBar status={processStatus} />
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-4 bg-white border border-slate-200 rounded-xl p-4">
@@ -271,7 +299,7 @@ export default function DatasetManagement() {
           dataset={selectedDataset}
           onClose={() => setSelectedDataset(null)}
           onSubmit={handleProcess}
-          processing={running}
+          processing={processStatus?.status === "running"}
         />
       )}
 

@@ -164,3 +164,8 @@ class TrainingRunOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class StartProcessResponse(BaseModel):
+    status: str
+    message: str
+    dataset_id: int

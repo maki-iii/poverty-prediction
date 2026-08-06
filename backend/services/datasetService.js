@@ -63,7 +63,16 @@ uploadDataset: async (fileBuffer, filename, uploadedBy) => {
       });
       return data;
     } catch (err) {
-      throw new Error(`Processing failed: ${err.response?.data?.detail || err.message}`);
+      throw new Error(`Failed to start processing: ${err.response?.data?.detail || err.message}`);
+    }
+  },
+
+  getProcessStatus: async (datasetId) => {
+    try {
+      const { data } = await mlApi.get(`/datasets/${datasetId}/process-status`);
+      return data;
+    } catch (err) {
+      throw new Error(`Failed to fetch processing status: ${err.response?.data?.detail || err.message}`);
     }
   },
 

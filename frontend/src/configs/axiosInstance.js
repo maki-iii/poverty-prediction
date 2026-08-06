@@ -6,7 +6,7 @@ import envConfig from "./env.config";
 // interceptors, or change the base URL in one place later.
 const axiosInstance = axios.create({
   baseURL: envConfig.apiBaseUrl,
-  timeout: 15000, // 15s -- pipeline trigger calls (train/forecast) can take a few seconds
+  timeout: 60000, // 15s -- pipeline trigger calls (train/forecast) can take a few seconds
   withCredentials: true, // sends cookies (e.g. your JWT auth cookie) with requests
 });
 

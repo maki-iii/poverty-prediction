@@ -26,7 +26,6 @@ from src.pipeline.merge_new_actuals import load_new_actuals_file
 
 from src.pipeline import training_status
 
-from src.pipeline.dataset_management import process_dataset
 from src.api.schemas import ProcessDatasetRequest
 
 from src.api.schemas import (
@@ -39,6 +38,10 @@ from src.api.schemas import (
     FeatureImportanceOut,
     TrainingRunOut
 )
+
+from src.pipeline.dataset_management import start_processing
+from src.pipeline import processing_status
+from src.api.schemas import StartProcessResponse
 
 from src.database.repository.training_runs_repo import list_runs
 
@@ -336,23 +339,30 @@ def delete_dataset_endpoint(dataset_id: int):
         filename=result["filename"],
     )
 
-@app.post("/datasets/{dataset_id}/process", response_model=DatasetOut, tags=["datasets"])
+@app.post("/datasets/{dataset_id}/process", response_model=StartProcessResponse, tags=["datasets"])
 def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest):
     try:
-        record = process_dataset(
+        start_processing(
             dataset_id=dataset_id,
             survey_type=request.survey_type,
             year=request.year,
             inflation_rate=request.inflation_rate,
             poverty_incidence=request.poverty_incidence,
         )
-        return record
+        return StartProcessResponse(
+            status="started",
+            message="Processing started. Poll /datasets/{id}/process-status for progress.",
+            dataset_id=dataset_id,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/datasets/{dataset_id}/process-status", tags=["datasets"])
+def get_process_status(dataset_id: int):
+    return processing_status.get_status(dataset_id)
 
 @app.get("/models/feature-importance", response_model=FeatureImportanceOut, tags=["models"])
 def get_feature_importance():

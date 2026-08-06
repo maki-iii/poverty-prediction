@@ -15,5 +15,5 @@ router.get("/", verifyToken,verifyAdmin, DatasetController.listDatasets);
 router.post("/:id/merge", verifyToken, verifyAdmin, DatasetController.mergeDataset);
 router.delete("/:id", verifyToken, verifyAdmin, DatasetController.deleteDataset);
 router.post("/:id/process", verifyToken, verifyAdmin, DatasetController.processDataset);
-
+router.get("/:id/process-status", DatasetController.getProcessStatus);
 module.exports = router;

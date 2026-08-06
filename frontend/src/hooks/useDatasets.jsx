@@ -51,7 +51,7 @@ export function useDatasetActions() {
   return {
     running,
     error,
-    uploadDataset: (file) => runAction(() => DatasetService.uploadDataset(file)),
+    uploadDataset: (file, onProgress) => runAction(() => DatasetService.uploadDataset(file, onProgress)),
     mergeDataset: (datasetId) => runAction(() => DatasetService.mergeDataset(datasetId)),
     deleteDataset: (datasetId) => runAction(() => DatasetService.deleteDataset(datasetId)),
     processDataset: (datasetId, payload) => runAction(() => DatasetService.processDataset(datasetId, payload)),

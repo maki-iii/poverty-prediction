@@ -79,6 +79,7 @@ const DatasetController = {
   },
 
   // POST /api/datasets/:id/process
+  // POST /api/datasets/:id/process
   processDataset: async (req, res) => {
     try {
       const { id } = req.params;
@@ -101,15 +102,26 @@ const DatasetController = {
         userId: req.user?.id ?? null,
         username: req.user?.username || null,
         action: AuditLogService.ACTIONS.PROCESS,
-        details: `Processed "${result.original_filename}"`,
+        details: `Started processing dataset id=${id}`,
       });
 
       return res.status(200).json(result);
     } catch (error) {
       const notFound = error.message.includes("not found");
-      const badRequest = error.message.includes("only") || error.message.includes("status");
+      const badRequest = error.message.includes("only") || error.message.includes("status") || error.message.includes("already being processed");
       const status = notFound ? 404 : badRequest ? 400 : 500;
       return res.status(status).json({ message: error.message });
+    }
+  },
+
+  // GET /api/datasets/:id/process-status
+  getProcessStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const status = await DatasetService.getProcessStatus(id);
+      return res.status(200).json(status);
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
     }
   },
 

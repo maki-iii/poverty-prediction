@@ -21,6 +21,8 @@ from src.database.repository.datasets_repo import (
 )
 from src.database.repository.actuals_repo import upsert_year
 from src.pipeline.raw_data_processor import process_raw_survey
+import threading
+from src.pipeline import processing_status
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # ml/src/pipeline/dataset_management.py -> ml/
 UPLOAD_DIR = PROJECT_ROOT / "data" / "uploads"
@@ -60,35 +62,23 @@ def get_datasets(status: str = None) -> list:
     return df.to_dict(orient="records")
 
 
-def process_dataset(
-    dataset_id: int,
-    survey_type: str,
-    year: int,
-    inflation_rate: float,
-    poverty_incidence: float,
-) -> dict:
-    """
-    Parses the raw survey file (auto-computes income, expenditure, family
-    size, employment rate, educational attainment), combines with the
-    manually-supplied year/inflation_rate/poverty_incidence, and marks
-    the dataset 'processed'.
-    """
-    record = get_dataset(dataset_id)
-    if record is None:
-        raise ValueError(f"Dataset id={dataset_id} not found")
-    if record["status"] not in ("pending", "failed"):
-        raise ValueError(
-            f"Dataset id={dataset_id} has status '{record['status']}' -- "
-            f"only 'pending' or 'failed' datasets can be processed."
-        )
-
-    file_path = PROJECT_ROOT / record["stored_path"]
-    if not file_path.exists():
-        mark_failed(dataset_id, "Stored file no longer exists on disk")
-        raise FileNotFoundError(f"File not found: {file_path}")
-
+def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, poverty_incidence):
     try:
-        computed = process_raw_survey(file_path, survey_type)
+        record = get_dataset(dataset_id)
+        if record is None:
+            raise ValueError(f"Dataset id={dataset_id} not found")
+        if record["status"] not in ("pending", "failed"):
+            raise ValueError(
+                f"Dataset id={dataset_id} has status '{record['status']}' -- "
+                f"only 'pending' or 'failed' datasets can be processed."
+            )
+
+        file_path = PROJECT_ROOT / record["stored_path"]
+        if not file_path.exists():
+            mark_failed(dataset_id, "Stored file no longer exists on disk")
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        computed = process_raw_survey(file_path, survey_type, dataset_id=dataset_id)
 
         processed_values = {
             "year": year,
@@ -102,11 +92,30 @@ def process_dataset(
         }
 
         mark_processed(dataset_id, survey_type, computed["region"], processed_values)
-        return get_dataset(dataset_id)
+        processing_status.complete(dataset_id)
 
     except Exception as e:
         mark_failed(dataset_id, str(e))
-        raise
+        processing_status.fail(dataset_id, e)
+
+
+def start_processing(dataset_id: int, survey_type: str, year: int,
+                      inflation_rate: float, poverty_incidence: float):
+    """
+    Kicks off processing in a background thread. Returns immediately;
+    poll processing_status.get_status(dataset_id) for progress.
+    """
+    if processing_status.is_running(dataset_id):
+        raise ValueError(f"Dataset id={dataset_id} is already being processed.")
+
+    processing_status.reset(dataset_id)
+
+    thread = threading.Thread(
+        target=_process_dataset_background,
+        args=(dataset_id, survey_type, year, inflation_rate, poverty_incidence),
+        daemon=True,
+    )
+    thread.start()
 
 
 def merge_dataset(dataset_id: int) -> dict:

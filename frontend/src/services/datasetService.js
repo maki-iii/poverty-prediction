@@ -5,8 +5,13 @@ import * as DatasetApi from "../api/datasetApi";
 
 const DatasetService = {
 
-  uploadDataset: async (file) => {
-    const { data } = await DatasetApi.uploadDataset(file);
+  uploadDataset: async (file, onProgress) => {
+    const { data } = await DatasetApi.uploadDataset(file, onProgress);
+    return data;
+  },
+
+  getProcessStatus: async (datasetId) => {
+    const { data } = await DatasetApi.getProcessStatus(datasetId);
     return data;
   },
 
