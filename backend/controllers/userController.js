@@ -127,13 +127,12 @@ const UserController = {
     }
   },
 
-  // Admin-only login
+  // Admin-only login (accepts both admin and super_admin)
   adminLogin: async (req, res) => {
     try {
       const { username, password } = req.body;
 
-      // expectedRole: "admin" — user credentials will be rejected
-      const user = await UserService.login({ username, password, expectedRole: "admin" });
+      const user = await UserService.login({ username, password, expectedRole: ["admin", "super_admin"] });
 
       const token = jwt.sign(
         { id: user.id, role: user.role, username: user.username },

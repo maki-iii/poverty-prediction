@@ -3,6 +3,7 @@ const router = express.Router();
 const UserController = require("../controllers/userController");
 const verifyToken = require("../middlewares/authMiddleware");
 const verifyAdmin = require("../middlewares/adminMiddleware");
+const verifySuperAdmin = require("../middlewares/superAdminMiddleware");
 
 // Public routes
 router.post("/register", UserController.register);
@@ -29,10 +30,10 @@ router.get("/:id", UserController.getProfile);
 router.put("/:id/change-password", UserController.changePassword);
 
 // Admin-only routes
-router.get("/", verifyAdmin, UserController.getAllUsers);
-router.delete("/:id", verifyAdmin, UserController.deleteUser);
+router.get("/", verifySuperAdmin, UserController.getAllUsers);
+router.delete("/:id", verifySuperAdmin, UserController.deleteUser);
 
 // Create user with role
-router.post("/create", verifyAdmin, UserController.createUser);
+router.post("/create", verifySuperAdmin, UserController.createUser);
 
 module.exports = router;

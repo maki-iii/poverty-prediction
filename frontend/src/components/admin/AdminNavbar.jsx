@@ -25,78 +25,85 @@ import { useAuth } from "../../hooks/useAuth";
 import ConfirmModal from "../common/ConfirmModal";
 import Loader from "../common/Loader";
 
-const navItems = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/admin/dashboard",
-  },
-  {
-    label: "Dataset Management",
-    icon: Database,
-    path: "/admin/dataset-management",
-  },
-  {
-    label: "Data",
-    icon: MapPinned,
-    path: "/admin/data",
-  },
+const getNavItems = (role) => {
+  const items = [
+    {
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      path: "/admin/dashboard",
+    },
+    {
+      label: "Dataset Management",
+      icon: Database,
+      path: "/admin/dataset-management",
+    },
+    {
+      label: "Data",
+      icon: MapPinned,
+      path: "/admin/data",
+    },
 
-  //{
-    //label: "Methods",
-    //icon: BookOpen,
-    //path: "/admin/methods",
-  //},
+    //{
+      //label: "Methods",
+      //icon: BookOpen,
+      //path: "/admin/methods",
+    //},
 
- 
-  {
-    label: "Model",
-    icon: BrainCircuit,
-    children: [
-      {
-        label: "Model Training",
-        icon: BrainCircuit,
-        path: "/admin/model-training",
-      },
-      {
-        label: "Model Evaluation",
-        icon: BadgeCheck,
-        path: "/admin/model-evaluation",
-      },
-    ],
-  },
-  {
-    label: "Forecasting",
-    icon: TrendingUp,
-    path: "/admin/forecasting",
-  },
-  {
-    label: "Analysis",
-    icon: Map,
-    path: "/admin/analysis",
-  },
-  {
-    label: "Visualization",
-    icon: ChartColumnBig,
-    path: "/admin/visualization",
-  },
-  {
-    label: "System",
-    icon: Settings,
-    children: [
-      {
-        label: "User Management",
-        icon: UsersRound,
-        path: "/admin/user-management",
-      },
-      {
-        label: "Audit Logs",
-        icon: ClipboardList,
-        path: "/admin/audit-logs",
-      },
-    ],
-  },
-];
+    {
+      label: "Model",
+      icon: BrainCircuit,
+      children: [
+        {
+          label: "Model Training",
+          icon: BrainCircuit,
+          path: "/admin/model-training",
+        },
+        {
+          label: "Model Evaluation",
+          icon: BadgeCheck,
+          path: "/admin/model-evaluation",
+        },
+      ],
+    },
+    {
+      label: "Forecasting",
+      icon: TrendingUp,
+      path: "/admin/forecasting",
+    },
+    {
+      label: "Analysis",
+      icon: Map,
+      path: "/admin/analysis",
+    },
+    {
+      label: "Visualization",
+      icon: ChartColumnBig,
+      path: "/admin/visualization",
+    },
+  ];
+
+  // System module (Audit Logs + User Management) is super_admin only
+  if (role === "super_admin") {
+    items.push({
+      label: "System",
+      icon: Settings,
+      children: [
+        {
+          label: "User Management",
+          icon: UsersRound,
+          path: "/admin/user-management",
+        },
+        {
+          label: "Audit Logs",
+          icon: ClipboardList,
+          path: "/admin/audit-logs",
+        },
+      ],
+    });
+  }
+
+  return items;
+};
 
 function NavGroup({ item, collapsed, onNavigate }) {
   const location = useLocation();
@@ -236,22 +243,18 @@ function AdminCard({ user, collapsed, onLogout, onNavigate }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const roleLabel = user?.role === "super_admin" ? "SUPER ADMIN" : "ADMIN";
+
   const MenuItems = () => (
     <>
       <div className="px-3 py-2.5 border-b border-[#002366]/10">
         <div className="flex items-center gap-1 mb-0.5">
           <ShieldCheck className="h-3 w-3 text-[#002366]" />
-          <span className="text-[10px] font-bold text-[#002366] uppercase tracking-wide">Admin</span>
+          <span className="text-[10px] font-bold text-[#002366] uppercase tracking-wide">{roleLabel}</span>
         </div>
         <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "Admin"}</p>
         <p className="text-[10px] text-gray-400 truncate">{user?.email || ""}</p>
       </div>
-      <button
-        onClick={() => { onNavigate("/admin/settings"); setShowMenu(false); }}
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-[#002366]/5 transition-colors"
-      >
-        <Settings className="h-3.5 w-3.5" /> Settings
-      </button>
       <button
         onClick={() => { onLogout(); setShowMenu(false); }}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors"
@@ -291,11 +294,12 @@ function AdminCard({ user, collapsed, onLogout, onNavigate }) {
         <div className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-1">
             <p className="text-xs font-semibold text-gray-800 truncate">{user?.name || "Admin"}</p>
-            <span className="text-[9px] font-bold text-[#002366] bg-[#002366]/10 px-1.5 py-0.5 rounded-full shrink-0">ADMIN</span>
+            <span className="text-[9px] font-bold text-[#002366] bg-[#002366]/10 px-1.5 py-0.5 rounded-full shrink-0">
+              {roleLabel}
+            </span>
           </div>
           <p className="text-[10px] text-gray-400 truncate">{user?.username || user?.email || ""}</p>
         </div>
-        <Settings className="h-3.5 w-3.5 text-gray-400 shrink-0" />
       </button>
       {showMenu && (
         <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-xl shadow-xl border border-[#002366]/10 overflow-hidden z-50">
@@ -307,6 +311,8 @@ function AdminCard({ user, collapsed, onLogout, onNavigate }) {
 }
 
 function SidebarContent({ onNavigate, collapsed, onLogout, user }) {
+  const navItems = getNavItems(user?.role);
+
   return (
     <div className="flex flex-col h-full py-4 bg-white">
 

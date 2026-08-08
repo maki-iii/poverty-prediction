@@ -17,7 +17,9 @@ export default function RedirectIfAuthenticated({ children }) {
   }
 
   if (user) {
-    const destination = user.role === "admin" ? "/admin/dashboard" : "/user/dashboard";
+    const destination = ["admin", "super_admin"].includes(user.role)
+      ? "/admin/dashboard"
+      : "/user/dashboard";
     return <Navigate to={destination} replace />;
   }
 
