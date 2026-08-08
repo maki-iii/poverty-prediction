@@ -148,7 +148,12 @@ const UserService = {
     }
 
     const user = await User.findByUsername(username);
-    if (!user || expectedRole && user.role !== expectedRole) {
+
+    const roleMatches =
+      !expectedRole ||
+      (Array.isArray(expectedRole) ? expectedRole.includes(user?.role) : user?.role === expectedRole);
+
+    if (!user || !roleMatches) {
       throw new Error("Invalid username or password");
     }
 

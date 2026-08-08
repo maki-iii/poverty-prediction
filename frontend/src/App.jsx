@@ -77,7 +77,7 @@ function App() {
             </Route>
 
             {/* ADMIN ROUTES */}
-            <Route element={<ProtectedRoute requiredRole="admin" />}>
+            <Route element={<ProtectedRoute requiredRoles={["admin", "super_admin"]} />}>
               <Route element={<AdminLayout />}>
                 <Route path="/admin/dashboard" element={<Dashboard />} />
                 <Route path="/admin/dataset-management" element={<DatasetManagement />} />
