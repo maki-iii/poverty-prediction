@@ -34,7 +34,7 @@ export default function Forecasting() {
             </p>
           </div>
         </div>
-        {/*<ForecastButton onRun={handleRunForecast} running={running} />*/}
+        <ForecastButton onRun={handleRunForecast} running={running} />
       </div>
 
       {isLoading ? (

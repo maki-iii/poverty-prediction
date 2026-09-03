@@ -30,12 +30,6 @@ export default function ProcessedDatasetsTable({ datasets, onMerge, onDelete }) 
               Family
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Employ.
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Educ.
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
               Inflation
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
@@ -65,10 +59,10 @@ export default function ProcessedDatasetsTable({ datasets, onMerge, onDelete }) 
                 {d.processed_avg_household_expenditure?.toLocaleString()}
               </td>
               <td className="px-3 py-2 text-slate-600">{d.processed_avg_family_size}</td>
-              <td className="px-3 py-2 text-slate-600">{d.processed_employment_rate}%</td>
-              <td className="px-3 py-2 text-slate-600">{d.processed_avg_educational_attainment}%</td>
               <td className="px-3 py-2 text-slate-600">{d.processed_inflation_rate}%</td>
-              <td className="px-3 py-2 text-slate-600">{d.processed_poverty_incidence}%</td>
+              <td className="px-3 py-2 text-slate-600">
+                {d.processed_poverty_incidence != null ? `${d.processed_poverty_incidence}%` : "—"}
+              </td>
               <td className="px-3 py-2">
                 <StatusBadge status={d.status} />
               </td>

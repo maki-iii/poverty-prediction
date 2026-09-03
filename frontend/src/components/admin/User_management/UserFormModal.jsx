@@ -15,7 +15,7 @@ export default function UserFormModal({ mode, user, onClose, onSubmit, submittin
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [role, setRole] = useState("user");
+  const [role, setRole] = useState("admin");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -103,8 +103,8 @@ export default function UserFormModal({ mode, user, onClose, onSubmit, submittin
                 <div>
                   <label className={labelClass}>Role</label>
                   <select value={role} onChange={(e) => setRole(e.target.value)} className={inputClass}>
-                    <option value="user">User</option>
                     <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
                   </select>
                 </div>
               </div>

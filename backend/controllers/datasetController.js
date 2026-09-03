@@ -3,14 +3,19 @@ const AuditLogService = require("../services/auditLogService");
 
 const DatasetController = {
 
-  // POST /api/datasets/upload
+    // POST /api/datasets/upload
   uploadDataset: async (req, res) => {
+    const fs = require("fs");
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
       const uploadedBy = req.user?.username || null;
-      const result = await DatasetService.uploadDataset(req.file.buffer, req.file.originalname, uploadedBy);
+      const result = await DatasetService.uploadDataset(
+        req.file.path,
+        req.file.originalname,
+        uploadedBy
+      );
 
       await AuditLogService.log({
         userId: req.user?.id ?? null,
@@ -22,6 +27,11 @@ const DatasetController = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ message: error.message });
+    } finally {
+      // Clean up the temp file regardless of success/failure
+      if (req.file?.path) {
+        fs.unlink(req.file.path, () => {});
+      }
     }
   },
 

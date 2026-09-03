@@ -62,7 +62,7 @@ def get_datasets(status: str = None) -> list:
     return df.to_dict(orient="records")
 
 
-def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, poverty_incidence):
+def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, poverty_incidence=None):
     try:
         record = get_dataset(dataset_id)
         if record is None:
@@ -72,6 +72,10 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
                 f"Dataset id={dataset_id} has status '{record['status']}' -- "
                 f"only 'pending' or 'failed' datasets can be processed."
             )
+
+        # APIS surveys don't include poverty incidence data -- only FIES does.
+        if survey_type == "fies" and poverty_incidence is None:
+            raise ValueError("poverty_incidence is required when survey_type is 'fies'.")
 
         file_path = PROJECT_ROOT / record["stored_path"]
         if not file_path.exists():
@@ -85,10 +89,8 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
             "avg_household_income": computed["avg_household_income"],
             "avg_household_expenditure": computed["avg_household_expenditure"],
             "avg_family_size": computed["avg_family_size"],
-            "employment_rate": computed["employment_rate"],
-            "avg_educational_attainment": computed["avg_educational_attainment"],
             "inflation_rate": inflation_rate,
-            "poverty_incidence": poverty_incidence,
+            "poverty_incidence": poverty_incidence,  # None for APIS, required for FIES
         }
 
         mark_processed(dataset_id, survey_type, computed["region"], processed_values)
@@ -100,7 +102,7 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
 
 
 def start_processing(dataset_id: int, survey_type: str, year: int,
-                      inflation_rate: float, poverty_incidence: float):
+                      inflation_rate: float, poverty_incidence: float = None):
     """
     Kicks off processing in a background thread. Returns immediately;
     poll processing_status.get_status(dataset_id) for progress.
@@ -138,11 +140,9 @@ def merge_dataset(dataset_id: int) -> dict:
             "avg_household_income": record["processed_avg_household_income"],
             "avg_household_expenditure": record["processed_avg_household_expenditure"],
             "avg_family_size": record["processed_avg_family_size"],
-            "employment_rate": record["processed_employment_rate"],
-            "avg_educational_attainment": record["processed_avg_educational_attainment"],
             "inflation_rate": record["processed_inflation_rate"],
             "poverty_incidence": record["processed_poverty_incidence"],
-            "source": "actual",
+            "source": record["survey_type"].upper(),
         }
 
         outcome = upsert_year(actuals_row)

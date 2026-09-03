@@ -27,19 +27,13 @@ export default function DataTable({ actuals, onDelete }) {
               Expenditure
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Family
+              Family size
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Employ.
+              Inflation rate
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Educ.
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Inflation
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Poverty
+              Poverty incidence
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
               Source
@@ -61,10 +55,10 @@ export default function DataTable({ actuals, onDelete }) {
                 {row.avg_household_expenditure?.toLocaleString()}
               </td>
               <td className="px-3 py-2 text-slate-600">{row.avg_family_size}</td>
-              <td className="px-3 py-2 text-slate-600">{row.employment_rate}%</td>
-              <td className="px-3 py-2 text-slate-600">{row.avg_educational_attainment}%</td>
               <td className="px-3 py-2 text-slate-600">{row.inflation_rate}%</td>
-              <td className="px-3 py-2 text-slate-600 font-medium">{row.poverty_incidence}%</td>
+              <td className="px-3 py-2 text-slate-600 font-medium">
+                {row.poverty_incidence != null ? `${row.poverty_incidence}%` : "—"}
+              </td>
               <td className="px-3 py-2">
                 <StatusBadge status={row.source} />
               </td>

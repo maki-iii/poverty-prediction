@@ -14,8 +14,6 @@ const FEATURE_LABELS = {
   avg_household_income: "Household Income",
   avg_household_expenditure: "Household Expenditure",
   avg_family_size: "Family Size",
-  employment_rate: "Employment Rate",
-  avg_educational_attainment: "Educational Attainment",
   inflation_rate: "Inflation Rate",
 };
 

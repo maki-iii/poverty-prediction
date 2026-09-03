@@ -23,8 +23,6 @@ class ForecastedIndicators(Base):
     avg_household_income = Column(DECIMAL(12, 2))
     avg_household_expenditure = Column(DECIMAL(12, 2))
     avg_family_size = Column(DECIMAL(4, 2))
-    employment_rate = Column(DECIMAL(5, 2))
-    avg_educational_attainment = Column(DECIMAL(5, 2))
     inflation_rate = Column(DECIMAL(5, 2))
 
     arima_order = Column(String(20))

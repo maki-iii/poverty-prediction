@@ -20,10 +20,8 @@ class ActualIndicatorOut(BaseModel):
     avg_household_income: float
     avg_household_expenditure: float
     avg_family_size: float
-    employment_rate: float
-    avg_educational_attainment: float
     inflation_rate: float
-    poverty_incidence: float
+    poverty_incidence: Optional[float] = None
     source: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -42,8 +40,6 @@ class ForecastedIndicatorOut(BaseModel):
     avg_household_income: Optional[float] = None
     avg_household_expenditure: Optional[float] = None
     avg_family_size: Optional[float] = None
-    employment_rate: Optional[float] = None
-    avg_educational_attainment: Optional[float] = None
     inflation_rate: Optional[float] = None
     arima_order: Optional[str] = None
     model_run_id: Optional[str] = None
@@ -113,8 +109,6 @@ class DatasetOut(BaseModel):
     processed_avg_household_income: Optional[float] = None
     processed_avg_household_expenditure: Optional[float] = None
     processed_avg_family_size: Optional[float] = None
-    processed_employment_rate: Optional[float] = None
-    processed_avg_educational_attainment: Optional[float] = None
     processed_inflation_rate: Optional[float] = None
     processed_poverty_incidence: Optional[float] = None
 
@@ -142,7 +136,7 @@ class ProcessDatasetRequest(BaseModel):
     survey_type: str
     year: int
     inflation_rate: float
-    poverty_incidence: float
+    poverty_incidence: Optional[float] = None
 
 class FeatureImportanceOut(BaseModel):
     model_used: str

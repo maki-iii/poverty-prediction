@@ -26,8 +26,6 @@ COLUMN_MAP = {
     "Average Household Income": "avg_household_income",
     "Average Household Expenditure": "avg_household_expenditure",
     "Average Family Size": "avg_family_size",
-    "Employment Rate (%)": "employment_rate",
-    "Average Educational Attainment (Years)": "avg_educational_attainment",
     "Inflation Rate (%)": "inflation_rate",
     "Poverty Incidence (%)": "poverty_incidence",
 }

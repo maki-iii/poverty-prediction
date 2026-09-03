@@ -5,8 +5,6 @@ const INDICATORS = [
   { key: "avg_household_income", label: "Household Income", color: "#002366", unit: "" },
   { key: "avg_household_expenditure", label: "Household Expenditure", color: "#0044cc", unit: "" },
   { key: "avg_family_size", label: "Family Size", color: "#7c3aed", unit: "" },
-  { key: "employment_rate", label: "Employment Rate", color: "#059669", unit: "%" },
-  { key: "avg_educational_attainment", label: "Educational Attainment", color: "#d97706", unit: "%" },
   { key: "inflation_rate", label: "Inflation Rate", color: "#dc2626", unit: "%" },
 ];
 

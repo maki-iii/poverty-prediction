@@ -115,8 +115,6 @@ def mark_processed(dataset_id: int, survey_type: str, region: str, processed_val
         record.processed_avg_household_income = processed_values.get("avg_household_income")
         record.processed_avg_household_expenditure = processed_values.get("avg_household_expenditure")
         record.processed_avg_family_size = processed_values.get("avg_family_size")
-        record.processed_employment_rate = processed_values.get("employment_rate")
-        record.processed_avg_educational_attainment = processed_values.get("avg_educational_attainment")
         record.processed_inflation_rate = processed_values.get("inflation_rate")
         record.processed_poverty_incidence = processed_values.get("poverty_incidence")
 

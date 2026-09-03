@@ -22,7 +22,7 @@ try:
 except ImportError:
     PMDARIMA_AVAILABLE = False
 
-from src.preprocess.load_clean import get_training_data
+from src.preprocess.load_clean import get_forecast_input_data
 from src.database.repository.forecasts_repo import insert_forecasts
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # ml/src/models/forecasting/forecast_inputs.py -> ml/
@@ -86,7 +86,7 @@ def forecast_all_indicators() -> pd.DataFrame:
     Returns a DataFrame with one row per forecasted year, all indicator
     columns, plus arima_order and model_run_id metadata.
     """
-    X, y, years = get_training_data(region=REGION)
+    X, years = get_forecast_input_data(region=REGION)
     X = X.copy()
     X.index = years.values
 

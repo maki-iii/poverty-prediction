@@ -34,8 +34,6 @@ class UploadedDataset(Base):
     processed_avg_household_income = Column(DECIMAL(12, 2), nullable=True)
     processed_avg_household_expenditure = Column(DECIMAL(12, 2), nullable=True)
     processed_avg_family_size = Column(DECIMAL(4, 2), nullable=True)
-    processed_employment_rate = Column(DECIMAL(5, 2), nullable=True)
-    processed_avg_educational_attainment = Column(DECIMAL(5, 2), nullable=True)
     processed_inflation_rate = Column(DECIMAL(5, 2), nullable=True)
     processed_poverty_incidence = Column(DECIMAL(5, 2), nullable=True)
 

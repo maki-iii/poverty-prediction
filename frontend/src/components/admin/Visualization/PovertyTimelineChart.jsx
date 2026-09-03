@@ -59,7 +59,14 @@ export default function PovertyTimelineChart({ actuals, predictions, compact = f
           <YAxis tick={{ fontSize: 11 }} unit="%" />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
-            formatter={(value) => (value != null ? `${value}%` : "—")}
+            formatter={(value, name, props) => {
+              // Hide the artificial "bridge" predicted value at the last actual year --
+              // it's only there to connect the lines visually, not a real prediction.
+              if (name === "Predicted Poverty Incidence" && props.payload.actual != null) {
+                return null;
+              }
+              return value != null ? `${value}%` : "—";
+            }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
 
@@ -88,7 +95,13 @@ export default function PovertyTimelineChart({ actuals, predictions, compact = f
             stroke="#059669"
             strokeWidth={2.5}
             strokeDasharray="6 6"
-            dot={{ r: 3 }}
+            dot={(props) => {
+              const { cx, cy, payload, index } = props;
+              // Skip rendering a dot at the bridge point (where a real actual value
+              // also exists) -- that point is already marked by the actual line's dot.
+              if (payload.actual != null) return null;
+              return <circle key={`predicted-dot-${index}`} cx={cx} cy={cy} r={3} fill="#059669" />;
+            }}
             connectNulls
           />
         </LineChart>

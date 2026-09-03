@@ -20,13 +20,11 @@ class ActualIndicators(Base):
     avg_household_income = Column(DECIMAL(12, 2), nullable=False)
     avg_household_expenditure = Column(DECIMAL(12, 2), nullable=False)
     avg_family_size = Column(DECIMAL(4, 2), nullable=False)
-    employment_rate = Column(DECIMAL(5, 2), nullable=False)
-    avg_educational_attainment = Column(DECIMAL(5, 2), nullable=False)
     inflation_rate = Column(DECIMAL(5, 2), nullable=False)
 
-    poverty_incidence = Column(DECIMAL(5, 2), nullable=False)  # target
+    poverty_incidence = Column(DECIMAL(5, 2), nullable=True)  # target -- null for APIS-only years
 
-    source = Column(Enum("actual", "seed", name="source_enum"), nullable=False, default="seed")
+    source = Column(Enum("seed", "actual", "FIES", "APIS", name="source_enum"), nullable=False, default="seed")
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

@@ -293,7 +293,7 @@ def merge_new_actuals(file: UploadFile = File(...)):
 # =======================================================================
 @app.post("/datasets/upload", response_model=DatasetOut, tags=["datasets"])
 def upload_dataset(file: UploadFile = File(...), uploaded_by: str = Form(None)):
-    if not file.filename.endswith((".xlsx", ".xls", ".CSV")):
+    if not file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
         raise HTTPException(status_code=400, detail="File must be an .xlsx, .xls, or .csv file.")
     try:
         file_bytes = file.file.read()

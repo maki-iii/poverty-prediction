@@ -1,43 +1,17 @@
-# =====================================================================
-# Maps raw survey column names -> standardized fields, per survey type.
-# Each field lists possible column-name aliases (survey years/versions
-# sometimes rename columns). The processor tries each alias in order
-# and uses whichever one actually exists in the uploaded file.
-#
-# To add a new survey type or year: add a new top-level key (e.g. "fies_2023")
-# and fill in its aliases -- no code changes needed elsewhere.
-# =====================================================================
-
 apis:
-  income_col: [TOINC_01, TOTINC, INC]
-  expenditure_col: [TOTEX_01, TOTEXP, EXP]
-  family_size_col: [FSIZE_01, FSIZE, FAMSIZE]
-  employment_col: [C19_WITH_JOB1_01, WITH_JOB, EMPLOYED]
-  employment_yes_code: "1"
+  income_col: [TOINC_01, TOTINC, INC, TOTIN, TOINC, PUFTOTINC]
+  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOEXP, PUFTOTEXP, T_TOTEX, TOTEX]
+  family_size_col: [FSIZE_01, FSIZE1, FSIZE2, FSIZE, FAMSIZE, PUFSIZE]
 
-  education_col: [C12_HGC_01, HGC, EDUC_ATTAIN]
-  # avg_educational_attainment is now a PERCENTAGE: % of household heads
-  # who are college graduates or higher. Codes 35 (College Graduate) and
-  # 37 (Graduate/PhD/Master's Degree) count as "yes"; everything else
-  # (including blank/Don't Know) counts as "no".
-  college_graduate_codes: [35, 37]
-
-  region_col: [REG, REGION]
+  region_col: [REG, REGION, REGN, PREG, REGO]
   region_code_map:
     13: NCR
 
 fies:
-  # PLACEHOLDER -- not yet verified against a real FIES file.
-  # Replace/extend these aliases once a sample FIES file is provided.
-  income_col: [TOINC_01, TOTINC, INC]
-  expenditure_col: [TOTEX_01, TOTEXP, EXP]
+  income_col: [TOINC_01, TOTINC, INC, TOTIN, TOINC]
+  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOTEX, TTOTEX]
   family_size_col: [FSIZE_01, FSIZE, FAMSIZE]
-  employment_col: [C19_WITH_JOB1_01, WITH_JOB, EMPLOYED]
-  employment_yes_code: "1"
 
-  education_col: [C12_HGC_01, HGC, EDUC_ATTAIN]
-  college_graduate_codes: [35, 37]
-
-  region_col: [REG, REGION]
+  region_col: [W_REGN, REG, REGION, REGN]
   region_code_map:
     13: NCR

@@ -11,14 +11,10 @@ region: "NCR"
 
 target_column: "poverty_incidence"
 
-# These are the 12 socioeconomic indicators. ARIMA forecasts each one;
-# the ML models then use all 12 as features to predict poverty_incidence.
 feature_columns:
   - avg_household_income
   - avg_household_expenditure
   - avg_family_size
-  - employment_rate
-  - avg_educational_attainment
   - inflation_rate
 
 # ---------------------------------------------------------------------

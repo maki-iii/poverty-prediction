@@ -28,12 +28,6 @@ export default function ForecastResultTable({ forecasts }) {
               Family Size
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Employment
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Education
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
               Inflation
             </th>
           </tr>
@@ -50,8 +44,6 @@ export default function ForecastResultTable({ forecasts }) {
                 {f.avg_household_expenditure?.toLocaleString()}
               </td>
               <td className="px-3 py-2 text-slate-600">{f.avg_family_size}</td>
-              <td className="px-3 py-2 text-slate-600">{f.employment_rate}%</td>
-              <td className="px-3 py-2 text-slate-600">{f.avg_educational_attainment}%</td>
               <td className="px-3 py-2 text-slate-600">{f.inflation_rate}%</td>
             </tr>
           ))}

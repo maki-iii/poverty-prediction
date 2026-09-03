@@ -14,8 +14,6 @@ const INDICATORS = [
   { key: "avg_household_income", label: "Household Income" },
   { key: "avg_household_expenditure", label: "Household Expenditure" },
   { key: "avg_family_size", label: "Family Size" },
-  { key: "employment_rate", label: "Employment Rate (%)" },
-  { key: "avg_educational_attainment", label: "Educational Attainment (%)" },
   { key: "inflation_rate", label: "Inflation Rate (%)" },
 ];
 

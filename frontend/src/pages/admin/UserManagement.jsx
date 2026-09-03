@@ -125,8 +125,8 @@ export default function UserManagement() {
                        focus:outline-none focus:ring-2 focus:ring-[#002366]/30 focus:border-[#002366]"
           >
             <option value="all">All Roles</option>
-            <option value="user">User</option>
             <option value="admin">Admin</option>
+            <option value="super_admin">Super Admin</option>
           </select>
         </div>
       </div>

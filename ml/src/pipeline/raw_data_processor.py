@@ -74,8 +74,6 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
     income_col = _resolve_column(df, mapping["income_col"], "income")
     expenditure_col = _resolve_column(df, mapping["expenditure_col"], "expenditure")
     family_size_col = _resolve_column(df, mapping["family_size_col"], "family_size")
-    employment_col = _resolve_column(df, mapping["employment_col"], "employment")
-    education_col = _resolve_column(df, mapping["education_col"], "education")
     region_col = _resolve_column(df, mapping["region_col"], "region")
 
     if dataset_id is not None:
@@ -97,7 +95,7 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
     region_name = region_code_map[matched_code]
 
     if dataset_id is not None:
-        processing_status.update(dataset_id, "computing_income", 55, "Computing income & expenditure...")
+        processing_status.update(dataset_id, "computing_income", 70, "Computing income & expenditure...")
 
     # --- Compute averages ---
     income = _clean_numeric(df_filtered[income_col])
@@ -109,26 +107,6 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
     avg_family_size = round(float(family_size.mean()), 2)
 
     if dataset_id is not None:
-        processing_status.update(dataset_id, "computing_employment", 70, "Computing employment rate...")
-
-    # --- Employment rate ---
-    emp_raw = df_filtered[employment_col].astype(str).str.strip()
-    emp_valid = emp_raw[emp_raw != ""]
-    yes_code = str(mapping["employment_yes_code"]).strip()
-    employment_rate = round(float((emp_valid == yes_code).mean() * 100), 2) if len(emp_valid) > 0 else None
-
-    if dataset_id is not None:
-        processing_status.update(dataset_id, "computing_education", 85, "Computing educational attainment...")
-
-    # --- Educational attainment ---
-    edu_numeric = _clean_numeric(df_filtered[education_col])
-    edu_valid = edu_numeric.dropna()
-    college_codes = mapping["college_graduate_codes"]
-    avg_educational_attainment = (
-        round(float(edu_valid.isin(college_codes).mean() * 100), 2) if len(edu_valid) > 0 else None
-    )
-
-    if dataset_id is not None:
         processing_status.update(dataset_id, "finalizing", 95, "Finalizing results...")
 
     return {
@@ -137,8 +115,6 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
         "avg_household_income": avg_household_income,
         "avg_household_expenditure": avg_household_expenditure,
         "avg_family_size": avg_family_size,
-        "employment_rate": employment_rate,
-        "avg_educational_attainment": avg_educational_attainment,
     }
 
 

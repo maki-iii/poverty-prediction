@@ -14,18 +14,22 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (!year || inflationRate === "" || povertyIncidence === "") {
-      setError("All fields are required.");
+    
+    if (!year || inflationRate === "") {
+      setError("Year and inflation rate are required.");
+      return;
+    }
+    if (surveyType === "fies" && povertyIncidence === "") {
+      setError("Poverty incidence is required for FIES datasets.");
       return;
     }
 
     try {
-      await onSubmit(dataset.id, {
+        await onSubmit(dataset.id, {
         surveyType,
         year: Number(year),
         inflationRate: Number(inflationRate),
-        povertyIncidence: Number(povertyIncidence),
+        povertyIncidence: surveyType === "fies" ? Number(povertyIncidence) : null,
       });
       onClose();
     } catch (err) {
@@ -107,18 +111,22 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
                 />
               </div>
             </div>
-
-            <div>
-              <label className={labelClass}>Poverty Incidence (%)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={povertyIncidence}
-                onChange={(e) => setPovertyIncidence(e.target.value)}
-                placeholder="20.65"
-                className={inputClass}
-              />
-            </div>
+            
+            {surveyType === "fies" && (
+              <div>
+                <label className={labelClass}>
+                  Poverty Incidence (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={povertyIncidence}
+                  onChange={(e) => setPovertyIncidence(e.target.value)}
+                  placeholder="e.g. 20.65"
+                  className={inputClass}
+                />
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">

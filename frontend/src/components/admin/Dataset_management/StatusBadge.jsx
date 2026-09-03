@@ -3,6 +3,10 @@ const STATUS_STYLES = {
   processed: "bg-blue-100 text-blue-800",
   merged: "bg-green-100 text-green-800",
   failed: "bg-red-100 text-red-800",
+  seed: "bg-slate-100 text-slate-600",
+  actual: "bg-slate-100 text-slate-600",
+  FIES: "bg-purple-100 text-purple-700",
+  APIS: "bg-cyan-100 text-cyan-700",
 };
 
 export default function StatusBadge({ status }) {

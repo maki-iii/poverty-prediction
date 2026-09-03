@@ -6,10 +6,12 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
     if (!actuals || actuals.length === 0 || !predictions || predictions.length === 0) {
       return null;
     }
-
-    const sortedActuals = [...actuals].sort((a, b) => a.year - b.year);
+    
+    const sortedActuals = [...actuals]
+      .filter((r) => r.poverty_incidence != null) // skip APIS-only years (no target)
+      .sort((a, b) => a.year - b.year);
     const sortedPredictions = [...predictions].sort((a, b) => a.year - b.year);
-
+    if (sortedActuals.length === 0) return null;
     const lastActual = sortedActuals[sortedActuals.length - 1];
     const lastPrediction = sortedPredictions[sortedPredictions.length - 1];
 

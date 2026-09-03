@@ -6,13 +6,16 @@ export default function KpiCards({ actuals, predictions }) {
     if (!actuals || actuals.length === 0) return null;
 
     const sorted = [...actuals].sort((a, b) => a.year - b.year);
-    const latest = sorted[sorted.length - 1];
+    const withPoverty = sorted.filter((r) => r.poverty_incidence != null);
+    const latest = withPoverty[withPoverty.length - 1];
 
-    const values = sorted.map((r) => r.poverty_incidence);
+    if (!latest) return null; // no FIES data available at all
+
+    const values = withPoverty.map((r) => r.poverty_incidence);
     const highest = Math.max(...values);
     const lowest = Math.min(...values);
-    const highestYear = sorted.find((r) => r.poverty_incidence === highest)?.year;
-    const lowestYear = sorted.find((r) => r.poverty_incidence === lowest)?.year;
+    const highestYear = withPoverty.find((r) => r.poverty_incidence === highest)?.year;
+    const lowestYear = withPoverty.find((r) => r.poverty_incidence === lowest)?.year;
 
     const sortedPredictions = predictions ? [...predictions].sort((a, b) => a.year - b.year) : [];
     const lastPrediction = sortedPredictions[sortedPredictions.length - 1];

@@ -9,16 +9,27 @@ const mlApi = axios.create({
 
 const DatasetService = {
 
-uploadDataset: async (fileBuffer, filename, uploadedBy) => {
+  uploadDataset: async (filePath, originalName, uploadedBy, onProgress) => {
     try {
+      const fs = require("fs");
       const form = new FormData();
-      form.append("file", fileBuffer, filename);
+      form.append("file", fs.createReadStream(filePath), originalName);
       if (uploadedBy) {
         form.append("uploaded_by", uploadedBy);
       }
 
       const { data } = await mlApi.post("/datasets/upload", form, {
         headers: form.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        onUploadProgress: onProgress
+          ? (progressEvent) => {
+              if (progressEvent.total) {
+                const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                onProgress(percent);
+              }
+            }
+          : undefined,
       });
       return data;
     } catch (err) {

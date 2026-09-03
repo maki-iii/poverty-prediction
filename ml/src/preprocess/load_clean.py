@@ -2,8 +2,13 @@
 Loads actuals from the database, validates them, and splits into
 features (X) and target (y) for ML training.
 
-This is the bridge between the database layer and the ML layer --
-train.py calls get_training_data() instead of touching the DB directly.
+Two entry points, for two different consumers:
+    - get_forecast_input_data(): ALL actuals rows (APIS + FIES), used by
+      ARIMA forecasting -- more historical points = better trend detection,
+      and poverty_incidence isn't needed for forecasting inputs anyway.
+    - get_training_data(): only rows where poverty_incidence is NOT NULL
+      (i.e. FIES years), used by ML model training -- the target variable
+      must actually exist to train on it.
 """
 
 from pathlib import Path
@@ -35,21 +40,11 @@ def load_actuals(region: str = None) -> pd.DataFrame:
     return df
 
 
-def validate(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Basic sanity checks before training:
-    - required columns present
-    - no missing values in features/target
-    - no duplicate years
-    """
-    required = set(FEATURE_COLUMNS + [TARGET_COLUMN, "year", "region"])
-    missing_cols = required - set(df.columns)
+def _validate_common(df: pd.DataFrame, required_columns: set) -> pd.DataFrame:
+    """Shared validation: required columns present, no duplicate years."""
+    missing_cols = required_columns - set(df.columns)
     if missing_cols:
         raise ValueError(f"Missing expected columns from DB data: {missing_cols}")
-
-    null_counts = df[FEATURE_COLUMNS + [TARGET_COLUMN]].isnull().sum()
-    if null_counts.any():
-        raise ValueError(f"Found null values in actuals data:\n{null_counts[null_counts > 0]}")
 
     dupes = df[df.duplicated(subset=["region", "year"], keep=False)]
     if not dupes.empty:
@@ -58,9 +53,44 @@ def validate(df: pd.DataFrame) -> pd.DataFrame:
     return df.sort_values("year").reset_index(drop=True)
 
 
+def get_forecast_input_data(region: str = None):
+    """
+    Entry point for ARIMA forecasting.
+
+    Returns ALL actuals rows (both APIS and FIES years) since forecasting
+    only needs the 6 indicator columns, not poverty_incidence.
+
+    Returns:
+        X (pd.DataFrame): feature columns only
+        years (pd.Series): year for each row
+    """
+    df = load_actuals(region)
+    df = _validate_common(df, set(FEATURE_COLUMNS + ["year", "region"]))
+
+    feature_null_counts = df[FEATURE_COLUMNS].isnull().sum()
+    if feature_null_counts.any():
+        raise ValueError(
+            f"Found null values in indicator columns (these are required for "
+            f"every actuals row regardless of survey type):\n"
+            f"{feature_null_counts[feature_null_counts > 0]}"
+        )
+
+    for col in FEATURE_COLUMNS:
+        df[col] = df[col].astype(float)
+
+    X = df[FEATURE_COLUMNS].copy()
+    years = df["year"].copy()
+
+    return X, years
+
+
 def get_training_data(region: str = None):
     """
-    Main entry point for the ML layer.
+    Entry point for ML model training.
+
+    Returns only rows where poverty_incidence IS NOT NULL (i.e. FIES years)
+    -- the target variable must actually exist to train on it. APIS-only
+    years (no poverty_incidence) are excluded here.
 
     Returns:
         X (pd.DataFrame): feature columns only
@@ -68,9 +98,24 @@ def get_training_data(region: str = None):
         years (pd.Series): year for each row, useful for time-aware splits
     """
     df = load_actuals(region)
-    df = validate(df)
+    df = _validate_common(df, set(FEATURE_COLUMNS + [TARGET_COLUMN, "year", "region"]))
 
-    # Cast DB Decimal types to float for sklearn/xgboost compatibility
+    # Only keep rows with a real target value (FIES years)
+    df = df[df[TARGET_COLUMN].notna()].reset_index(drop=True)
+
+    if df.empty:
+        raise ValueError(
+            f"No rows with a non-null '{TARGET_COLUMN}' found. "
+            f"ML training requires at least some FIES-sourced years with poverty_incidence."
+        )
+
+    feature_null_counts = df[FEATURE_COLUMNS].isnull().sum()
+    if feature_null_counts.any():
+        raise ValueError(
+            f"Found null values in indicator columns among training rows:\n"
+            f"{feature_null_counts[feature_null_counts > 0]}"
+        )
+
     for col in FEATURE_COLUMNS + [TARGET_COLUMN]:
         df[col] = df[col].astype(float)
 
@@ -83,7 +128,10 @@ def get_training_data(region: str = None):
 
 if __name__ == "__main__":
     # Quick manual check: python -m src.preprocess.load_clean
-    X, y, years = get_training_data()
-    print(f"[load_clean] Loaded {len(X)} rows, {X.shape[1]} features.")
-    print(f"[load_clean] Year range: {years.min()}–{years.max()}")
-    print(X.head())
+    X_fc, years_fc = get_forecast_input_data()
+    print(f"[load_clean] Forecast input data: {len(X_fc)} rows (APIS + FIES), "
+          f"years {years_fc.min()}-{years_fc.max()}")
+
+    X_tr, y_tr, years_tr = get_training_data()
+    print(f"[load_clean] Training data: {len(X_tr)} rows (FIES only), "
+          f"years {years_tr.min()}-{years_tr.max()}")
