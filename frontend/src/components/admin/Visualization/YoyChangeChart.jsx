@@ -1,13 +1,26 @@
 import { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer, ReferenceLine } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 
 function useYoyData(actuals) {
   return useMemo(() => {
-    if (!actuals || actuals.length < 2) return [];
+    if (!actuals) return [];
 
-    const sorted = [...actuals].sort((a, b) => a.year - b.year);
+    const sorted = [...actuals]
+      .filter((r) => r.poverty_incidence != null) // skip years without a real/interpolated value
+      .sort((a, b) => a.year - b.year);
+
+    if (sorted.length < 2) return [];
+
     const changes = [];
-
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1];
       const curr = sorted[i];
@@ -24,6 +37,13 @@ function useYoyData(actuals) {
   }, [actuals]);
 }
 
+// Custom dot: colored by direction of change (red = increase, green = decrease, gray = flat)
+function ChangeDot(props) {
+  const { cx, cy, payload } = props;
+  const color = payload.change > 0 ? "#dc2626" : payload.change < 0 ? "#059669" : "#94a3b8";
+  return <circle cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={1.5} />;
+}
+
 export function YoyChangeBars({ actuals, height = 260 }) {
   const chartData = useYoyData(actuals);
   if (chartData.length === 0) return null;
@@ -31,7 +51,7 @@ export function YoyChangeBars({ actuals, height = 260 }) {
   return (
     <>
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+        <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} unit=" pts" />
@@ -40,12 +60,15 @@ export function YoyChangeBars({ actuals, height = 260 }) {
             formatter={(value) => `${value > 0 ? "+" : ""}${value} pts`}
           />
           <ReferenceLine y={0} stroke="#cbd5e1" />
-          <Bar dataKey="change" radius={[4, 4, 4, 4]}>
-            {chartData.map((entry, idx) => (
-              <Cell key={idx} fill={entry.change > 0 ? "#dc2626" : entry.change < 0 ? "#059669" : "#94a3b8"} />
-            ))}
-          </Bar>
-        </BarChart>
+          <Line
+            type="monotone"
+            dataKey="change"
+            stroke="#94a3b8"
+            strokeWidth={2}
+            dot={<ChangeDot />}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
       </ResponsiveContainer>
       <p className="text-[10px] text-slate-400 mt-2">
         Red = poverty incidence increased from prior year · Green = decreased

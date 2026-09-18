@@ -24,7 +24,7 @@ class ActualIndicators(Base):
 
     poverty_incidence = Column(DECIMAL(5, 2), nullable=True)  # target -- null for APIS-only years
 
-    source = Column(Enum("seed", "actual", "FIES", "APIS", name="source_enum"), nullable=False, default="seed")
+    source = Column(Enum("seed", "actual", "FIES", "APIS", "interpolated", name="source_enum"), nullable=False, default="seed")
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
