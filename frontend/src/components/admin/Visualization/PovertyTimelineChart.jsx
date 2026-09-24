@@ -1,3 +1,4 @@
+import { buildTimeline } from "../../../utils/timeline.js";
 import { useMemo } from "react";
 import {
   LineChart,
@@ -12,33 +13,10 @@ import {
 } from "recharts";
 
 export default function PovertyTimelineChart({ actuals, predictions, compact = false }) {
-  const chartData = useMemo(() => {
-    if (!actuals || actuals.length === 0) return [];
-
-    const sortedActuals = [...actuals].sort((a, b) => a.year - b.year);
-    const sortedPredictions = predictions ? [...predictions].sort((a, b) => a.year - b.year) : [];
-
-    const actualPoints = sortedActuals.map((row) => ({
-      year: row.year,
-      actual: row.poverty_incidence,
-      predicted: null,
-    }));
-
-    if (sortedPredictions.length === 0) return actualPoints;
-
-    // Bridge the last actual year to the first prediction so the line
-    // connects visually instead of showing a break.
-    const lastActual = actualPoints[actualPoints.length - 1];
-    const bridgedLast = { ...lastActual, predicted: lastActual.actual };
-
-    const predictionPoints = sortedPredictions.map((row) => ({
-      year: row.year,
-      actual: null,
-      predicted: row.predicted_poverty_incidence,
-    }));
-
-    return [...actualPoints.slice(0, -1), bridgedLast, ...predictionPoints];
-  }, [actuals, predictions]);
+  const { points: chartData, segments } = useMemo(
+    () => buildTimeline(actuals, predictions, "poverty_incidence", "predicted_poverty_incidence", "predicted"),
+    [actuals, predictions],
+  );
 
   const firstPredictionYear = predictions?.[0]?.year;
 
@@ -59,14 +37,7 @@ export default function PovertyTimelineChart({ actuals, predictions, compact = f
           <YAxis tick={{ fontSize: 11 }} unit="%" />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
-            formatter={(value, name, props) => {
-              // Hide the artificial "bridge" predicted value at the last actual year --
-              // it's only there to connect the lines visually, not a real prediction.
-              if (name === "Predicted Poverty Incidence" && props.payload.actual != null) {
-                return null;
-              }
-              return value != null ? `${value}%` : "—";
-            }}
+            formatter={(value) => value != null ? `${value}%` : "N/A"}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
 
@@ -79,13 +50,32 @@ export default function PovertyTimelineChart({ actuals, predictions, compact = f
             />
           )}
 
+          {segments.map((segment) => (
+            <Line key={segment.key} dataKey={segment.key} type="linear"
+              stroke={segment.kind === "actual" ? "#002366" : segment.kind === "interpolated" ? "#d97706" : "#059669"}
+              strokeWidth={2}
+              strokeDasharray={segment.kind === "actual" ? undefined : "4 4"}
+              dot={false} activeDot={false} legendType="none" tooltipType="none"
+              connectNulls={false} isAnimationActive={false}
+            />
+          ))}
           <Line
             type="monotone"
             dataKey="actual"
             name="Actual Poverty Incidence"
             stroke="#002366"
-            strokeWidth={2.5}
-            dot={{ r: 2.5 }}
+            strokeWidth={0}
+            dot={{ r: 2.5, strokeWidth: 2 }}
+            connectNulls={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="interpolated"
+            name="Interpolated"
+            stroke="#d97706"
+            strokeWidth={0}
+            strokeDasharray="3 3"
+            dot={{ r: 2, strokeWidth: 2 }}
             connectNulls={false}
           />
           <Line
@@ -93,15 +83,9 @@ export default function PovertyTimelineChart({ actuals, predictions, compact = f
             dataKey="predicted"
             name="Predicted Poverty Incidence"
             stroke="#059669"
-            strokeWidth={2.5}
+            strokeWidth={0}
             strokeDasharray="6 6"
-            dot={(props) => {
-              const { cx, cy, payload, index } = props;
-              // Skip rendering a dot at the bridge point (where a real actual value
-              // also exists) -- that point is already marked by the actual line's dot.
-              if (payload.actual != null) return null;
-              return <circle key={`predicted-dot-${index}`} cx={cx} cy={cy} r={3} fill="#059669" />;
-            }}
+            dot={{ r: 3, strokeWidth: 2, fill: "#059669" }}
             connectNulls
           />
         </LineChart>

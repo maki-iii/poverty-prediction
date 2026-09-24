@@ -17,6 +17,7 @@ export default function ConfirmModal({
   confirmLabel = "Confirm",
   cancelLabel = "Go Back & Edit",
   fields = [],
+  busy = false,
 }) {
   if (!isOpen) return null;
 
@@ -31,11 +32,15 @@ export default function ConfirmModal({
   return (
     <div
       className="fixed inset-0 z-[110] flex items-center justify-center p-4"
-      onClick={onCancel}
+      onClick={busy ? undefined : onCancel}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={title}
+        aria-busy={busy}
         className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -59,7 +64,8 @@ export default function ConfirmModal({
               </div>
             </div>
             <button
-              onClick={onCancel}
+              disabled={busy}
+              onClick={busy ? undefined : onCancel}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0"
             >
               <X className="h-4 w-4" />
@@ -106,12 +112,14 @@ export default function ConfirmModal({
           {/* Actions */}
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={onCancel}
+              disabled={busy}
+              onClick={busy ? undefined : onCancel}
               className="h-11 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] transition-all duration-150"
             >
               {cancelLabel}
             </button>
             <button
+              disabled={busy}
               onClick={onConfirm}
               className="h-11 rounded-xl bg-[#002366] text-white text-sm font-semibold hover:bg-[#001a4d] active:scale-[0.98] transition-all duration-150 shadow-md shadow-[#002366]/20"
             >

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import DatasetService from "../services/datasetService";
 
 // Polls /datasets/:id/process-status while processing is active.
@@ -8,6 +8,8 @@ export default function useProcessingProgress(intervalMs = 1200) {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(null);
   const pollRef = useRef(null);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -16,13 +18,15 @@ export default function useProcessingProgress(intervalMs = 1200) {
     }
   }, []);
 
+  useEffect(() => stopPolling, [stopPolling]);
+
   const poll = useCallback(
     (datasetId) => {
       pollRef.current = setInterval(async () => {
         try {
           const data = await DatasetService.getProcessStatus(datasetId);
           setStatus(data);
-          if (data.status === "completed" || data.status === "failed") {
+          if (data.status === "completed" || data.status === "failed" || data.status === "cancelled") {
             stopPolling();
           }
         } catch (err) {
@@ -41,7 +45,7 @@ export default function useProcessingProgress(intervalMs = 1200) {
       try {
         await triggerFn();
         setStatus({ status: "running", step: "reading_file", progress: 0, message: "Starting..." });
-        poll(datasetId);
+        if (mounted.current) poll(datasetId);
       } catch (err) {
         setStartError(err.message);
         throw err;

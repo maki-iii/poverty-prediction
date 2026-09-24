@@ -1,0 +1,10 @@
+.env
+.env.*
+.venv
+venv
+__pycache__
+**/__pycache__
+data
+saved_models
+tests
+*.log

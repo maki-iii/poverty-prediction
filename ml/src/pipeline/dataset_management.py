@@ -21,7 +21,7 @@ from src.database.repository.datasets_repo import (
 )
 from src.database.repository.actuals_repo import upsert_year
 from src.pipeline.raw_data_processor import process_raw_survey
-import threading
+from src.pipeline import operations
 from src.pipeline import processing_status
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # ml/src/pipeline/dataset_management.py -> ml/
@@ -29,6 +29,7 @@ UPLOAD_DIR = PROJECT_ROOT / "data" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@operations.commit_step
 def save_uploaded_file(file_bytes: bytes, original_filename: str, uploaded_by: str = None) -> dict:
     """
     Saves an uploaded raw survey file to disk and creates a 'pending' record.
@@ -77,7 +78,7 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
         if survey_type == "fies" and poverty_incidence is None:
             raise ValueError("poverty_incidence is required when survey_type is 'fies'.")
 
-        file_path = PROJECT_ROOT / record["stored_path"]
+        file_path = PROJECT_ROOT / record["stored_path"].replace("\\", "/")
         if not file_path.exists():
             mark_failed(dataset_id, "Stored file no longer exists on disk")
             raise FileNotFoundError(f"File not found: {file_path}")
@@ -93,14 +94,18 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
             "poverty_incidence": poverty_incidence,  # None for APIS, required for FIES
         }
 
-        mark_processed(dataset_id, survey_type, computed["region"], processed_values)
-        processing_status.complete(dataset_id)
+        with operations.commit_section():
+            mark_processed(dataset_id, survey_type, computed["region"], processed_values)
+            processing_status.complete(dataset_id)
 
+    except operations.OperationCancelled:
+        processing_status.cancel(dataset_id)
     except Exception as e:
         mark_failed(dataset_id, str(e))
         processing_status.fail(dataset_id, e)
 
 
+@operations.serialize_start
 def start_processing(dataset_id: int, survey_type: str, year: int,
                       inflation_rate: float, poverty_incidence: float = None):
     """
@@ -112,12 +117,10 @@ def start_processing(dataset_id: int, survey_type: str, year: int,
 
     processing_status.reset(dataset_id)
 
-    thread = threading.Thread(
-        target=_process_dataset_background,
-        args=(dataset_id, survey_type, year, inflation_rate, poverty_incidence),
-        daemon=True,
+    operations.start_background(
+        _process_dataset_background,
+        (dataset_id, survey_type, year, inflation_rate, poverty_incidence),
     )
-    thread.start()
 
 
 def merge_dataset(dataset_id: int) -> dict:
@@ -145,8 +148,9 @@ def merge_dataset(dataset_id: int) -> dict:
             "source": record["survey_type"].upper(),
         }
 
-        outcome = upsert_year(actuals_row)
-        mark_merged(dataset_id)
+        with operations.commit_section():
+            outcome = upsert_year(actuals_row)
+            mark_merged(dataset_id)
 
         return {
             "dataset_id": dataset_id,
@@ -165,7 +169,7 @@ def remove_dataset(dataset_id: int) -> dict:
     if record is None:
         return None
 
-    file_path = PROJECT_ROOT / record["stored_path"]
+    file_path = PROJECT_ROOT / record["stored_path"].replace("\\", "/")
     if file_path.exists():
         file_path.unlink()
 

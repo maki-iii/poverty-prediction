@@ -1,4 +1,4 @@
-import * as PovertyApi from "../api/povertyApi";
+import * as PovertyApi from "../api/povertyAPI";
 
 // Business logic lives here -- which endpoint(s) to call, how to unwrap
 // responses, any combining/transformation. Components/hooks call THIS,

@@ -41,6 +41,13 @@ export default function ModelEvaluation() {
             <MetricsTable results={data?.results} bestModel={data?.best_model} />
           </section>
 
+          {data?.results?.[data.best_model]?.persistence_baseline && (
+            <p className="text-sm text-slate-600">
+              Evaluated on {data.results[data.best_model].test_points} observed poverty targets.
+              Last-observed-value baseline RMSE: {data.results[data.best_model].persistence_baseline.rmse.toFixed(4)}.
+              Small evaluation samples can produce unstable R² scores.
+            </p>
+          )}
           {/* Charts */}
           <section>
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
@@ -48,17 +55,6 @@ export default function ModelEvaluation() {
             </h2>
             <MetricsBarChart results={data?.results} bestModel={data?.best_model} />
           </section>
-
-          {/* Selection metric note */}
-          {data?.selection_metric && (
-            <p className="text-xs text-slate-400">
-              Best model selected based on lowest{" "}
-              <span className="font-medium text-slate-600 uppercase">
-                {data.selection_metric}
-              </span>
-              .
-            </p>
-          )}
         </>
       )}
     </div>

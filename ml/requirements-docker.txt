@@ -1,0 +1,3 @@
+-r requirements.txt
+# Existing Random Forest artifacts were saved with this version.
+scikit-learn==1.8.0

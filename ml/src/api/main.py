@@ -8,15 +8,16 @@ Docs available at: http://127.0.0.1:8000/docs
 """
 
 import tempfile
-import threading
+from src.pipeline import operations
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.database.repository.actuals_repo import get_actuals, get_years_present, upsert_year, delete_actual
-from src.database.repository.forecasts_repo import get_forecasts, get_latest_run_id as get_latest_forecast_run_id
-from src.database.repository.predictions_repo import get_predictions
+from src.database.repository.forecasts_repo import get_forecasts
+from src.database.repository.predictions_repo import get_predictions, get_current_predictions
+from src.database.repository.forecasts_repo import get_current_forecasts
 
 from src.models.forecasting.forecast_inputs import run as run_forecast_pipeline
 from src.models.ml.evaluate import run as run_evaluate_pipeline
@@ -117,11 +118,8 @@ def list_forecasts(region: str = None, model_run_id: str = None):
 
 
 @app.get("/forecasts/latest", response_model=list[ForecastedIndicatorOut], tags=["forecasts"])
-def list_latest_forecasts(region: str = "NCR"):
-    latest_run_id = get_latest_forecast_run_id(region=region)
-    if latest_run_id is None:
-        raise HTTPException(status_code=404, detail="No forecasts found. Run /pipeline/forecast first.")
-    df = get_forecasts(region=region, model_run_id=latest_run_id)
+def list_latest_forecasts(region: str = "NCR", include_history: bool = False):
+    df = get_current_forecasts(region=region, include_history=include_history)
     return df.to_dict(orient="records")
 
 
@@ -137,12 +135,8 @@ def list_predictions(region: str = None, model_run_id: str = None):
 
 
 @app.get("/predictions/latest", response_model=list[PredictionOut], tags=["predictions"])
-def list_latest_predictions(region: str = "NCR"):
-    df = get_predictions(region=region)
-    if df.empty:
-        raise HTTPException(status_code=404, detail="No predictions found. Run /pipeline/predict first.")
-    latest_run_id = df.sort_values("created_at").iloc[-1]["model_run_id"]
-    df = df[df["model_run_id"] == latest_run_id]
+def list_latest_predictions(region: str = "NCR", include_history: bool = False):
+    df = get_current_predictions(region=region, include_history=include_history)
     return df.to_dict(orient="records")
 
 
@@ -163,7 +157,8 @@ def get_model_comparison():
 # PIPELINE TRIGGERS
 # =======================================================================
 @app.post("/pipeline/forecast", response_model=PipelineRunResponse, tags=["pipeline"])
-def trigger_forecast():
+@operations.managed
+def trigger_forecast(operation_id: str = Header(None, alias="X-Operation-Id")):
     try:
         run_forecast_pipeline()
         return PipelineRunResponse(status="success", message="ARIMA forecasting completed.")
@@ -173,11 +168,13 @@ def trigger_forecast():
 
 def _run_training_background():
     try:
-        training_status.reset()
+        operations.checkpoint()
         best_model_name = run_evaluate_pipeline()
 
+        training_status.update(step="forecasting", progress=80, message="Refreshing future indicators...")
+        run_forecast_pipeline()
         training_status.update(step="predicting", progress=85, message="Generating predictions...")
-        run_predict_pipeline()
+        prediction_records = run_predict_pipeline()
 
         # Load the comparison report to include in the history record
         report_path = SAVED_MODELS_DIR / "model_comparison_results.json"
@@ -192,9 +189,8 @@ def _run_training_background():
         # Determine prediction year range from the latest forecast run
         prediction_years = None
         try:
-            df = get_forecasts(region="NCR")
-            if not df.empty:
-                years = sorted(df["year"].unique())
+            if prediction_records:
+                years = sorted({row["year"] for row in prediction_records})
                 prediction_years = f"{years[0]}-{years[-1]}" if len(years) > 1 else str(years[0])
         except Exception:
             pass
@@ -206,17 +202,21 @@ def _run_training_background():
             selection_metric=selection_metric,
             prediction_years=prediction_years,
         )
+    except operations.OperationCancelled:
+        training_status.cancel()
     except Exception as e:
         training_status.fail(e)
 
 
 @app.post("/pipeline/train", response_model=PipelineRunResponse, tags=["pipeline"])
-def trigger_train_and_evaluate():
+@operations.managed
+@operations.serialize_start
+def trigger_train_and_evaluate(operation_id: str = Header(None, alias="X-Operation-Id")):
     if training_status.is_running():
         raise HTTPException(status_code=409, detail="Training is already in progress.")
 
-    thread = threading.Thread(target=_run_training_background, daemon=True)
-    thread.start()
+    training_status.reset()
+    operations.start_background(_run_training_background)
 
     return PipelineRunResponse(
         status="started",
@@ -249,7 +249,7 @@ def trigger_full_pipeline():
         run_full_pipeline()
         return PipelineRunResponse(
             status="success",
-            message="Full pipeline (forecast -> train -> evaluate -> predict) completed.",
+            message="Full pipeline (train -> evaluate -> forecast -> predict) completed.",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -292,7 +292,9 @@ def merge_new_actuals(file: UploadFile = File(...)):
 # DATASET MANAGEMENT (upload -> review -> merge)
 # =======================================================================
 @app.post("/datasets/upload", response_model=DatasetOut, tags=["datasets"])
-def upload_dataset(file: UploadFile = File(...), uploaded_by: str = Form(None)):
+@operations.managed
+def upload_dataset(file: UploadFile = File(...), uploaded_by: str = Form(None),
+                   operation_id: str = Header(None, alias="X-Operation-Id")):
     if not file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
         raise HTTPException(status_code=400, detail="File must be an .xlsx, .xls, or .csv file.")
     try:
@@ -309,7 +311,8 @@ def list_all_datasets(status: str = None):
 
 
 @app.post("/datasets/{dataset_id}/merge", response_model=MergeDatasetResponse, tags=["datasets"])
-def merge_dataset_endpoint(dataset_id: int):
+@operations.managed
+def merge_dataset_endpoint(dataset_id: int, operation_id: str = Header(None, alias="X-Operation-Id")):
     try:
         result = merge_dataset(dataset_id)
         return MergeDatasetResponse(
@@ -340,7 +343,9 @@ def delete_dataset_endpoint(dataset_id: int):
     )
 
 @app.post("/datasets/{dataset_id}/process", response_model=StartProcessResponse, tags=["datasets"])
-def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest):
+@operations.managed
+def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest,
+                             operation_id: str = Header(None, alias="X-Operation-Id")):
     try:
         start_processing(
             dataset_id=dataset_id,
@@ -383,3 +388,7 @@ def list_training_runs(limit: int = 50):
         if col in df.columns:
             df[col] = df[col].apply(lambda x: x.isoformat() if x is not None and str(x) != "NaT" else None)
     return df.to_dict(orient="records")
+
+@app.post("/operations/{operation_id}/cancel", tags=["pipeline"])
+def cancel_operation(operation_id: str):
+    return operations.cancel(operation_id)

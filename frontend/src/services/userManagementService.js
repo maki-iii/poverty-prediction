@@ -1,4 +1,4 @@
-import * as UserApi from "../api/userApi";
+import * as UserApi from "../api/userAPI";
 
 const UserManagementService = {
   getAllUsers: async () => {

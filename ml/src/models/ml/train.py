@@ -1,233 +1,167 @@
+"""Expanding-window evaluation of the complete ARIMA -> regression pipeline.
+
+Only observed targets are scored. Each origin forecasts indicators without access
+to held-out years. Tuning occurs inside the training window, never on outer tests.
 """
-Trains every model listed in configs/config.yaml's ml.active_models using
-time-series-aware cross-validation (via sklearn's TimeSeriesSplit), then
-refits each model on the FULL dataset for the actual saved artifact.
-
-Each fold's predictions are logged individually for transparency, but the
-final CV metrics are computed by POOLING all out-of-fold predictions
-together and calculating ONE overall RMSE/MAE/R² -- not by averaging
-per-fold metrics.
-
-Usage (from the ml/ folder):
-    python -m src.models.ml.train
-"""
-
+from src.pipeline.operations import checkpoint, commit_section
 import time
 from pathlib import Path
-
+import numpy as np
+import pandas as pd
 import yaml
-from sklearn.model_selection import TimeSeriesSplit
-
-from src.preprocess.load_clean import get_training_data
+from sklearn.model_selection import ParameterGrid
+from sklearn.base import clone
+from src.preprocess.load_clean import get_training_frame, get_forecast_input_data, FEATURE_COLUMNS, TARGET_COLUMN
+from src.models.forecasting.forecast_inputs import fit_and_forecast
 from src.models.ml.model_factory import get_model
 from src.metrics.metrics import compute_metrics
 from src.pipeline import training_status
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SAVED_MODELS_DIR = PROJECT_ROOT / "saved_models" / "ml"
-
-
-with open(PROJECT_ROOT / "configs" / "config.yaml", "r") as f:
-    CONFIG = yaml.safe_load(f)
-
-
+CONFIG = yaml.safe_load((PROJECT_ROOT / "configs/config.yaml").read_text())
 CV_FOLDS = CONFIG["ml"].get("cv_folds", 5)
-RANDOM_STATE = CONFIG["ml"]["random_state"]
-MIN_TRAIN_SIZE = 5  # skip folds whose training set is too small to be meaningful
+MIN_TRAIN_SIZE = CONFIG["ml"].get("min_train_size", 5)
 
 
-def cross_validate_model(model_builder, X, y, years, n_splits=5, min_train_size=MIN_TRAIN_SIZE):
-    """
-    Runs TimeSeriesSplit cross-validation for a single model, printing
-    detailed per-fold diagnostics (year ranges, timing, metrics).
+def validation_folds(years, horizon=3, max_folds=5, min_train_size=5, observed_mask=None):
+    """Most recent non-overlapping calendar windows; at most `horizon` years ahead."""
+    if horizon < 1 or max_folds < 1 or min_train_size < 3:
+        raise ValueError("Use a positive horizon/fold count and at least three training targets.")
+    observed = np.flatnonzero(np.ones(len(years), dtype=bool) if observed_mask is None
+                              else np.asarray(observed_mask, dtype=bool))
+    observed_years = years.iloc[observed].to_numpy()
+    folds = []
+    origin = min_train_size - 1
+    while origin < len(observed) - 1:
+        cutoff = int(observed_years[origin])
+        test_positions = np.flatnonzero((observed_years > cutoff) &
+                                        (observed_years <= cutoff + horizon))
+        if len(test_positions):
+            # Include interpolated training rows, but stop at an observed anchor.
+            # No interpolation between the cutoff and a future target may enter.
+            training = np.flatnonzero(years.to_numpy() <= cutoff)
+            folds.append((training, observed[test_positions]))
+            origin = int(test_positions[-1])
+        else:
+            origin += 1
+    return folds[-max_folds:]
 
-    Final RMSE/MAE/R² are computed by pooling all out-of-fold predictions
-    together and scoring once -- more stable than averaging tiny per-fold
-    metrics on small datasets.
-    """
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
 
-    fold_results = []
-    pooled_y_true = []
-    pooled_y_pred = []
+def fit_tuned_model(name, X, y, forecast_folds=None):
+    model = get_model(name)
+    grid = CONFIG["ml"].get("tuning", {}).get(name)
+    if grid and forecast_folds:
+        best_score, best_estimator = float("inf"), None
+        for parameters in ParameterGrid(grid):
+            errors = []
+            for inner_train, inner_test, inner_forecast in forecast_folds:
+                estimator = clone(model.model).set_params(**parameters)
+                checkpoint()
+                estimator.fit(X.iloc[inner_train], y.iloc[inner_train])
+                prediction = np.clip(estimator.predict(inner_forecast), 0, 100)
+                errors.extend((y.iloc[inner_test].to_numpy() - prediction) ** 2)
+            score = float(np.mean(errors))
+            if score < best_score:
+                best_score = score
+                best_estimator = clone(model.model).set_params(**parameters)
+        checkpoint()
+        model.model = best_estimator.fit(X, y)
+    else:
+        checkpoint()
+        model.fit(X, y)
+    return model
 
-    cv_start = time.perf_counter()
 
-    for fold_number, (train_idx, test_idx) in enumerate(tscv.split(X), start=1):
+def prepare_validation(X, years, indicator_X, indicator_years, min_train_size=None, cache=None, allow_empty=False, observed_mask=None):
+    horizon = CONFIG["arima"]["forecast_horizon_years"]
+    folds = validation_folds(years, horizon, CV_FOLDS, min_train_size or MIN_TRAIN_SIZE, observed_mask)
+    if not folds and not allow_empty:
+        raise ValueError("Not enough observed targets for chronological validation: "
+                         "need at least five training targets and a later target within the forecast horizon.")
+    prepared = []
+    for train, test in folds:
+        cutoff = int(years.iloc[train[-1]])
+        history = indicator_X.loc[indicator_years <= cutoff].copy()
+        history.index = indicator_years.loc[indicator_years <= cutoff].astype(int)
+        test_years = years.iloc[test].astype(int)
+        steps = int(test_years.max()) - cutoff
+        future = {}
+        for col in X.columns:
+            key = (col, cutoff, steps)
+            if cache is not None and key in cache:
+                values = cache[key]
+            else:
+                values, _ = fit_and_forecast(history[col], steps)
+                if cache is not None:
+                    cache[key] = values
+            future[col] = [values[int(year) - cutoff - 1] for year in test_years]
+        prepared.append((train, test, pd.DataFrame(future, index=X.iloc[test].index)))
+    return prepared
 
-        train_years = years.iloc[train_idx]
-        test_years = years.iloc[test_idx]
 
-        if len(train_idx) < min_train_size:
-            print(
-                f"    Fold {fold_number}/{n_splits}: "
-                f"train={len(train_idx)} rows ({train_years.min()}-{train_years.max()}) "
-                f"-- SKIPPED (below min_train_size={min_train_size})"
-            )
-            continue
-
-        fold_start = time.perf_counter()
-
-        X_train = X.iloc[train_idx]
-        X_test = X.iloc[test_idx]
-        y_train = y.iloc[train_idx]
-        y_test = y.iloc[test_idx]
-
-        model = model_builder()
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-
-        fold_elapsed = time.perf_counter() - fold_start
-
-        fold_metrics = compute_metrics(y_test.tolist(), y_pred.tolist())
-
-        fold_result = {
-            "fold": fold_number,
-            "train_size": len(train_idx),
-            "test_size": len(test_idx),
-            "train_years": f"{train_years.min()}-{train_years.max()}",
-            "test_years": f"{test_years.min()}-{test_years.max()}",
-            "rmse": round(fold_metrics["rmse"], 4),
-            "mae": round(fold_metrics["mae"], 4),
-            "r2": round(fold_metrics["r2"], 4),
-            "elapsed_sec": round(fold_elapsed, 3),
-        }
-        fold_results.append(fold_result)
-
-        print(
-            f"    Fold {fold_number}/{n_splits}: "
-            f"train={len(train_idx):>2} ({fold_result['train_years']}) | "
-            f"test={len(test_idx)} ({fold_result['test_years']}) | "
-            f"RMSE={fold_result['rmse']:>7.4f} | "
-            f"MAE={fold_result['mae']:>7.4f} | "
-            f"R²={fold_result['r2']:>8.4f} | "
-            f"{fold_elapsed*1000:.0f}ms"
-        )
-
-        pooled_y_true.extend(y_test.tolist())
-        pooled_y_pred.extend(y_pred.tolist())
-
-    cv_elapsed = time.perf_counter() - cv_start
-
-    if not fold_results:
-        raise ValueError(
-            "No cross-validation folds were generated. "
-            "Check the number of observations, cv_folds, and min_train_size."
-        )
-
-    pooled_metrics = compute_metrics(pooled_y_true, pooled_y_pred)
-
-    print(f"    -> {len(fold_results)}/{n_splits} folds used, {len(pooled_y_true)} pooled test points, "
-          f"total CV time {cv_elapsed:.2f}s")
-
-    return {
-        "rmse": round(pooled_metrics["rmse"], 4),
-        "mae": round(pooled_metrics["mae"], 4),
-        "r2": round(pooled_metrics["r2"], 4),
-        "fold_count": len(fold_results),
-        "test_points": len(pooled_y_true),
-        "fold_results": fold_results,
-        "cv_elapsed_sec": round(cv_elapsed, 3),
-    }
+def evaluate_model(name, X, y, years, folds, inner_folds=None):
+    truth, predicted, diagnostic, baseline = [], [], [], []
+    details = []
+    started = time.perf_counter()
+    for number, (train, test, forecast_X) in enumerate(folds, 1):
+        model = fit_tuned_model(name, X.iloc[train], y.iloc[train],
+                                inner_folds[number - 1] if inner_folds else None)
+        estimates = np.clip(model.predict(forecast_X), 0, 100)
+        observed_input_estimates = np.clip(model.predict(X.iloc[test]), 0, 100)
+        actual = y.iloc[test].to_numpy()
+        truth.extend(actual)
+        predicted.extend(estimates)
+        diagnostic.extend(observed_input_estimates)
+        baseline.extend([float(y.iloc[train[-1]])] * len(test))
+        details.append({
+            "fold": number, "train_size": len(train), "test_size": len(test),
+            "train_years": f"{years.iloc[train].min()}-{years.iloc[train].max()}",
+            "test_years": f"{years.iloc[test].min()}-{years.iloc[test].max()}",
+            **compute_metrics(actual, estimates),
+            "years": years.iloc[test].astype(int).tolist(),
+            "actual": actual.tolist(), "predicted": estimates.tolist(),
+        })
+    metrics = compute_metrics(truth, predicted)
+    return {**metrics, "fold_count": len(folds), "test_points": len(truth),
+        "fold_results": details,
+        "observed_input_metrics": compute_metrics(truth, diagnostic),
+        "persistence_baseline": compute_metrics(truth, baseline),
+        "cv_elapsed_sec": round(time.perf_counter() - started, 3)}
 
 
 def train_all_models():
-    """
-    Cross-validates every active model using TimeSeriesSplit, then refits
-    each model on the FULL dataset and saves it to disk.
-    """
-
-    run_start = time.perf_counter()
-
-    training_status.update(step="loading_dataset", progress=5, message="Loading dataset...")
-
-    print("=" * 70)
-    print("[train] Loading training data...")
-    X, y, years = get_training_data()
-    print(f"[train] Loaded {len(X)} rows, years {years.min()}-{years.max()}, "
-          f"{X.shape[1]} features: {list(X.columns)}")
-    print(f"[train] Target: poverty_incidence, range {y.min():.2f}%-{y.max():.2f}%, "
-          f"mean {y.mean():.2f}%, std {y.std():.2f}")
-
-    training_status.update(step="preprocessing", progress=10, message="Preprocessing...")
-
-    active_model_names = CONFIG["ml"]["active_models"]
-    total = len(active_model_names)
-
-    if len(X) <= CV_FOLDS:
-        raise ValueError(
-            f"Not enough observations ({len(X)}) for {CV_FOLDS}-fold TimeSeriesSplit."
-        )
-
-    n_splits = CV_FOLDS
-    print(f"[train] Config: {n_splits}-fold TimeSeriesSplit, min_train_size={MIN_TRAIN_SIZE}, "
-          f"selection_metric={CONFIG['ml']['selection_metric']}")
-    print(f"[train] Active models: {active_model_names}")
-    print("=" * 70)
-
-    cv_results = {}
-    fitted_models = {}
-
-    SAVED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
-
-    for idx, model_name in enumerate(active_model_names):
-
-        progress = int(15 + (idx / total) * 45)
-        display_name = model_name.replace("_", " ").title()
-
-        training_status.update(
-            step="training",
-            progress=progress,
-            message=f"Cross-validating {display_name} ({n_splits}-fold)...",
-        )
-
-        def model_builder(name=model_name):
-            return get_model(name)
-
-        print(f"\n[train] [{idx + 1}/{total}] Cross-validating {model_name} ({n_splits}-fold)...")
-
-        cv_results[model_name] = cross_validate_model(
-            model_builder, X, y, years, n_splits=n_splits,
-        )
-
-        result = cv_results[model_name]
-        print(f"[train] {model_name} pooled result "
-              f"({result['test_points']} test points, {result['fold_count']} folds): "
-              f"RMSE={result['rmse']:.4f}  MAE={result['mae']:.4f}  R²={result['r2']:.4f}")
-
-        fit_start = time.perf_counter()
-        print(f"[train] Training final {model_name} on FULL dataset ({len(X)} rows)...")
-        final_model = model_builder()
-        final_model.fit(X, y)
-        fit_elapsed = time.perf_counter() - fit_start
-        print(f"[train] Final {model_name} fit complete in {fit_elapsed*1000:.0f}ms")
-
-        fitted_models[model_name] = final_model
-
+    training_status.update(step="loading_dataset", progress=5, message="Loading actual and interpolated training data...")
+    frame = get_training_frame()
+    X, y, years = frame[FEATURE_COLUMNS], frame[TARGET_COLUMN], frame["year"]
+    observed_mask = frame["source"].str.lower() != "interpolated"
+    # Validation must not read forecast batches generated with later information.
+    indicator_X, indicator_years = get_forecast_input_data(include_forecasts=False)
+    training_status.update(step="preprocessing", progress=10, message="Backtesting indicator forecasts...")
+    cache = {}
+    folds = prepare_validation(X, years, indicator_X, indicator_years, cache=cache, observed_mask=observed_mask)
+    inner_folds = [prepare_validation(X.iloc[tr], years.iloc[tr], indicator_X, indicator_years,
+                   min_train_size=3, cache=cache, allow_empty=True, observed_mask=observed_mask.iloc[tr]) for tr, _, _ in folds]
+    results, fitted = {}, {}
+    names = CONFIG["ml"]["active_models"]
+    for index, name in enumerate(names):
+        training_status.update(step="training", progress=int(15 + index / len(names) * 45),
+            message=f"Validating forecast pipeline with {name}...")
+        results[name] = evaluate_model(name, X, y, years, folds, inner_folds)
+        results[name]["training_points"] = len(frame)
+        results[name]["observed_training_points"] = int(observed_mask.sum())
+        results[name]["interpolated_training_points"] = int((~observed_mask).sum())
+        fitted[name] = fit_tuned_model(name, X, y, folds)
+        print(f"[train] {name}: {results[name]}")
+    # All candidates must succeed before replacing saved artifacts.
     training_status.update(step="saving", progress=62, message="Saving models...")
-
-    print(f"\n[train] Saving {len(fitted_models)} models...")
-    for name, model in fitted_models.items():
-        save_path = SAVED_MODELS_DIR / f"{name}.pkl"
-        model.save(save_path)
-        print(f"[train]   {name}.pkl -> {save_path}")
-
-    total_elapsed = time.perf_counter() - run_start
-    print(f"\n[train] Full training run complete in {total_elapsed:.2f}s")
-    print("=" * 70)
-
-    return fitted_models, cv_results
+    with commit_section():
+        SAVED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
+        for name, model in fitted.items():
+            model.save(SAVED_MODELS_DIR / f"{name}.pkl")
+    return fitted, results
 
 
 if __name__ == "__main__":
-
-    fitted_models, cv_results = train_all_models()
-
-    print("\n[train] === FINAL SUMMARY ===")
-    print(f"{'Model':<16} {'RMSE':>8} {'MAE':>8} {'R²':>9} {'Folds':>6} {'Points':>7}")
-    print("-" * 60)
-    for name, metrics in cv_results.items():
-        print(f"{name:<16} {metrics['rmse']:>8.4f} {metrics['mae']:>8.4f} "
-              f"{metrics['r2']:>9.4f} {metrics['fold_count']:>6} {metrics['test_points']:>7}")
+    train_all_models()

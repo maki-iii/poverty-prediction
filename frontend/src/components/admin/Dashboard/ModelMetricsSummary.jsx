@@ -55,7 +55,7 @@ export default function ModelMetricsSummary() {
                   <span className="text-[8px] text-slate-500">
                     R²{" "}
                     <span className="font-bold text-slate-700">
-                      {metrics.r2.toFixed(3)}
+                      {metrics.r2 == null ? "N/A" : metrics.r2.toFixed(3)}
                     </span>
                   </span>
                 </div>

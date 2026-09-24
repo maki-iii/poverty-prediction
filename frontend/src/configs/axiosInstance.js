@@ -1,4 +1,5 @@
 import axios from "axios";
+import { installOperationTracking } from "../services/operationTracker";
 import envConfig from "./env.config";
 
 // Central axios instance -- every api/*.js file imports THIS instead of
@@ -9,6 +10,8 @@ const axiosInstance = axios.create({
   timeout: 60000, // 15s -- pipeline trigger calls (train/forecast) can take a few seconds
   withCredentials: true, // sends cookies (e.g. your JWT auth cookie) with requests
 });
+
+installOperationTracking(axiosInstance);
 
 // Optional: centralize error logging/handling here later
 axiosInstance.interceptors.response.use(

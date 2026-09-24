@@ -1,202 +1,307 @@
 {
   "selection_metric": "rmse",
-  "validation_method": "TimeSeriesSplit cross-validation (min 5 folds, min 10 training rows per fold)",
-  "best_model": "ridge",
+  "validation_method": "Actual + interpolated training; expanding-window ARIMA + ML backtest on measured targets; nested chronological tuning",
+  "forecast_horizon_years": 3,
+  "minimum_training_targets": 5,
+  "quality_warning": "The selected model has not demonstrated reliable forecast skill. Compare it with the persistence baseline and review observed data coverage.",
+  "best_model": "random_forest",
   "results": {
     "xgboost": {
-      "rmse": 0.9848,
-      "mae": 0.783,
-      "r2": -0.5237,
-      "fold_count": 5,
-      "test_points": 20,
+      "rmse": 1.3177913429318335,
+      "mae": 1.0366990566253662,
+      "r2": -5.040257473064645,
+      "fold_count": 4,
+      "test_points": 4,
       "fold_results": [
         {
           "fold": 1,
-          "train_size": 7,
-          "test_size": 4,
-          "train_years": "1997-2003",
-          "test_years": "2004-2007",
-          "rmse": 1.6542,
-          "mae": 1.5303,
-          "r2": -8.6741,
-          "elapsed_sec": 0.35
+          "train_size": 13,
+          "test_size": 1,
+          "train_years": "1997-2009",
+          "test_years": "2012-2012",
+          "rmse": 1.9829858779907226,
+          "mae": 1.9829858779907226,
+          "r2": null,
+          "years": [
+            2012
+          ],
+          "actual": [
+            2.6
+          ],
+          "predicted": [
+            4.582985877990723
+          ]
         },
         {
           "fold": 2,
-          "train_size": 11,
-          "test_size": 4,
-          "train_years": "1997-2007",
-          "test_years": "2008-2011",
-          "rmse": 0.9038,
-          "mae": 0.8946,
-          "r2": -53.0283,
-          "elapsed_sec": 0.366
+          "train_size": 16,
+          "test_size": 1,
+          "train_years": "1997-2012",
+          "test_years": "2015-2015",
+          "rmse": 0.36022706031799334,
+          "mae": 0.36022706031799334,
+          "r2": null,
+          "years": [
+            2015
+          ],
+          "actual": [
+            2.8
+          ],
+          "predicted": [
+            3.160227060317993
+          ]
         },
         {
           "fold": 3,
-          "train_size": 15,
-          "test_size": 4,
-          "train_years": "1997-2011",
-          "test_years": "2012-2015",
-          "rmse": 0.2501,
-          "mae": 0.2331,
-          "r2": -10.4797,
-          "elapsed_sec": 0.366
+          "train_size": 19,
+          "test_size": 1,
+          "train_years": "1997-2015",
+          "test_years": "2018-2018",
+          "rmse": 1.6948374271392823,
+          "mae": 1.6948374271392823,
+          "r2": null,
+          "years": [
+            2018
+          ],
+          "actual": [
+            1.4
+          ],
+          "predicted": [
+            3.0948374271392822
+          ]
         },
         {
           "fold": 4,
-          "train_size": 19,
-          "test_size": 4,
-          "train_years": "1997-2015",
-          "test_years": "2016-2019",
-          "rmse": 1.0709,
-          "mae": 1.0027,
-          "r2": -8.9411,
-          "elapsed_sec": 0.314
-        },
-        {
-          "fold": 5,
-          "train_size": 23,
-          "test_size": 4,
-          "train_years": "1997-2019",
-          "test_years": "2020-2023",
-          "rmse": 0.2935,
-          "mae": 0.2543,
-          "r2": 0.4809,
-          "elapsed_sec": 0.338
+          "train_size": 22,
+          "test_size": 1,
+          "train_years": "1997-2018",
+          "test_years": "2021-2021",
+          "rmse": 0.10874586105346662,
+          "mae": 0.10874586105346662,
+          "r2": null,
+          "years": [
+            2021
+          ],
+          "actual": [
+            2.2
+          ],
+          "predicted": [
+            2.308745861053467
+          ]
         }
       ],
-      "cv_elapsed_sec": 1.762
+      "observed_input_metrics": {
+        "rmse": 0.5125480066118525,
+        "mae": 0.3035911440849304,
+        "r2": 0.08624188145466583
+      },
+      "persistence_baseline": {
+        "rmse": 0.8185352771872451,
+        "mae": 0.65,
+        "r2": -1.330434782608696
+      },
+      "cv_elapsed_sec": 3.463,
+      "training_points": 26,
+      "observed_training_points": 9,
+      "interpolated_training_points": 17
     },
     "ridge": {
-      "rmse": 0.9774,
-      "mae": 0.7921,
-      "r2": -0.5009,
-      "fold_count": 5,
-      "test_points": 20,
+      "rmse": 1.3261312903791016,
+      "mae": 1.1225152298831076,
+      "r2": -5.116953736774057,
+      "fold_count": 4,
+      "test_points": 4,
       "fold_results": [
         {
           "fold": 1,
-          "train_size": 7,
-          "test_size": 4,
-          "train_years": "1997-2003",
-          "test_years": "2004-2007",
-          "rmse": 1.4328,
-          "mae": 1.2666,
-          "r2": -6.2574,
-          "elapsed_sec": 0.018
+          "train_size": 13,
+          "test_size": 1,
+          "train_years": "1997-2009",
+          "test_years": "2012-2012",
+          "rmse": 1.5051461703608164,
+          "mae": 1.5051461703608164,
+          "r2": null,
+          "years": [
+            2012
+          ],
+          "actual": [
+            2.6
+          ],
+          "predicted": [
+            4.1051461703608165
+          ]
         },
         {
           "fold": 2,
-          "train_size": 11,
-          "test_size": 4,
-          "train_years": "1997-2007",
-          "test_years": "2008-2011",
-          "rmse": 1.3718,
-          "mae": 1.3616,
-          "r2": -123.4768,
-          "elapsed_sec": 0.018
+          "train_size": 16,
+          "test_size": 1,
+          "train_years": "1997-2012",
+          "test_years": "2015-2015",
+          "rmse": 0.8131429317560199,
+          "mae": 0.8131429317560199,
+          "r2": null,
+          "years": [
+            2015
+          ],
+          "actual": [
+            2.8
+          ],
+          "predicted": [
+            3.6131429317560197
+          ]
         },
         {
           "fold": 3,
-          "train_size": 15,
-          "test_size": 4,
-          "train_years": "1997-2011",
-          "test_years": "2012-2015",
-          "rmse": 0.3299,
-          "mae": 0.2958,
-          "r2": -18.9675,
-          "elapsed_sec": 0.016
+          "train_size": 19,
+          "test_size": 1,
+          "train_years": "1997-2015",
+          "test_years": "2018-2018",
+          "rmse": 2.0211756932701115,
+          "mae": 2.0211756932701115,
+          "r2": null,
+          "years": [
+            2018
+          ],
+          "actual": [
+            1.4
+          ],
+          "predicted": [
+            3.4211756932701114
+          ]
         },
         {
           "fold": 4,
-          "train_size": 19,
-          "test_size": 4,
-          "train_years": "1997-2015",
-          "test_years": "2016-2019",
-          "rmse": 0.5077,
-          "mae": 0.3939,
-          "r2": -1.2341,
-          "elapsed_sec": 0.024
-        },
-        {
-          "fold": 5,
-          "train_size": 23,
-          "test_size": 4,
-          "train_years": "1997-2019",
-          "test_years": "2020-2023",
-          "rmse": 0.6892,
-          "mae": 0.6425,
-          "r2": -1.8623,
-          "elapsed_sec": 0.012
+          "train_size": 22,
+          "test_size": 1,
+          "train_years": "1997-2018",
+          "test_years": "2021-2021",
+          "rmse": 0.15059612414548296,
+          "mae": 0.15059612414548296,
+          "r2": null,
+          "years": [
+            2021
+          ],
+          "actual": [
+            2.2
+          ],
+          "predicted": [
+            2.350596124145483
+          ]
         }
       ],
-      "cv_elapsed_sec": 0.117
+      "observed_input_metrics": {
+        "rmse": 0.7262181209732641,
+        "mae": 0.6296044694571941,
+        "r2": -0.8344095973215251
+      },
+      "persistence_baseline": {
+        "rmse": 0.8185352771872451,
+        "mae": 0.65,
+        "r2": -1.330434782608696
+      },
+      "cv_elapsed_sec": 0.609,
+      "training_points": 26,
+      "observed_training_points": 9,
+      "interpolated_training_points": 17
     },
     "random_forest": {
-      "rmse": 1.0789,
-      "mae": 0.8512,
-      "r2": -0.8289,
-      "fold_count": 5,
-      "test_points": 20,
+      "rmse": 0.9945348851221365,
+      "mae": 0.7874907634957634,
+      "r2": -2.4403465659996564,
+      "fold_count": 4,
+      "test_points": 4,
       "fold_results": [
         {
           "fold": 1,
-          "train_size": 7,
-          "test_size": 4,
-          "train_years": "1997-2003",
-          "test_years": "2004-2007",
-          "rmse": 1.5958,
-          "mae": 1.49,
-          "r2": -8.0024,
-          "elapsed_sec": 1.222
+          "train_size": 13,
+          "test_size": 1,
+          "train_years": "1997-2009",
+          "test_years": "2012-2012",
+          "rmse": 1.468351865079367,
+          "mae": 1.468351865079367,
+          "r2": null,
+          "years": [
+            2012
+          ],
+          "actual": [
+            2.6
+          ],
+          "predicted": [
+            4.068351865079367
+          ]
         },
         {
           "fold": 2,
-          "train_size": 11,
-          "test_size": 4,
-          "train_years": "1997-2007",
-          "test_years": "2008-2011",
-          "rmse": 1.4712,
-          "mae": 1.4661,
-          "r2": -142.1699,
-          "elapsed_sec": 1.234
+          "train_size": 16,
+          "test_size": 1,
+          "train_years": "1997-2012",
+          "test_years": "2015-2015",
+          "rmse": 0.09027912698412566,
+          "mae": 0.09027912698412566,
+          "r2": null,
+          "years": [
+            2015
+          ],
+          "actual": [
+            2.8
+          ],
+          "predicted": [
+            2.709720873015874
+          ]
         },
         {
           "fold": 3,
-          "train_size": 15,
-          "test_size": 4,
-          "train_years": "1997-2011",
-          "test_years": "2012-2015",
-          "rmse": 0.1147,
-          "mae": 0.091,
-          "r2": -1.4145,
-          "elapsed_sec": 1.279
+          "train_size": 19,
+          "test_size": 1,
+          "train_years": "1997-2015",
+          "test_years": "2018-2018",
+          "rmse": 1.3085120920745914,
+          "mae": 1.3085120920745914,
+          "r2": null,
+          "years": [
+            2018
+          ],
+          "actual": [
+            1.4
+          ],
+          "predicted": [
+            2.7085120920745913
+          ]
         },
         {
           "fold": 4,
-          "train_size": 19,
-          "test_size": 4,
-          "train_years": "1997-2015",
-          "test_years": "2016-2019",
-          "rmse": 0.9596,
-          "mae": 0.8948,
-          "r2": -6.9819,
-          "elapsed_sec": 1.129
-        },
-        {
-          "fold": 5,
-          "train_size": 23,
-          "test_size": 4,
-          "train_years": "1997-2019",
-          "test_years": "2020-2023",
-          "rmse": 0.4182,
-          "mae": 0.3139,
-          "r2": -0.054,
-          "elapsed_sec": 1.167
+          "train_size": 22,
+          "test_size": 1,
+          "train_years": "1997-2018",
+          "test_years": "2021-2021",
+          "rmse": 0.2828199698449696,
+          "mae": 0.2828199698449696,
+          "r2": null,
+          "years": [
+            2021
+          ],
+          "actual": [
+            2.2
+          ],
+          "predicted": [
+            2.4828199698449698
+          ]
         }
       ],
-      "cv_elapsed_sec": 6.06
+      "observed_input_metrics": {
+        "rmse": 0.682049892004278,
+        "mae": 0.5105803120721871,
+        "r2": -0.6180593223758171
+      },
+      "persistence_baseline": {
+        "rmse": 0.8185352771872451,
+        "mae": 0.65,
+        "r2": -1.330434782608696
+      },
+      "cv_elapsed_sec": 30.435,
+      "training_points": 26,
+      "observed_training_points": 9,
+      "interpolated_training_points": 17
     }
   }
 }

@@ -21,10 +21,10 @@ feature_columns:
 # ARIMA settings
 # ---------------------------------------------------------------------
 arima:
-  forecast_horizon_years: 3         # 2024, 2025, 2026
-  auto_order_selection: true        # use pmdarima.auto_arima per indicator
+  forecast_horizon_years: 3         # fixed three-year window after latest actual/interpolated year
+  auto_order_selection: true        # past-only indicator validation selects order and drift
   seasonal: false                   # annual data, no seasonality
-  fallback_order: [1, 1, 1]         # used if auto_arima fails to converge
+  fallback_order: [1, 1, 1]         # fixed specification when auto_order_selection is false
 
 # ---------------------------------------------------------------------
 # ML model comparison
@@ -39,9 +39,20 @@ ml:
     - ridge
     - random_forest
 
-  test_size: 0.2          # holdout split for evaluation
+  min_train_size: 5      # minimum observed targets before a validation origin
   random_state: 42
-  cv_folds: 5              # cross-validation folds during comparison
+  cv_folds: 5             # maximum recent, non-overlapping calendar validation windows
+
+  # Small-data regularization, selected only inside each training window.
+  tuning:
+    ridge:
+      ridge__alpha: [0.1, 1.0, 10.0, 100.0, 1000.0]
+    random_forest:
+      max_depth: [2, 4]
+      min_samples_leaf: [2, 4]
+    xgboost:
+      max_depth: [1, 2]
+      reg_lambda: [1.0, 10.0]
 
   selection_metric: "rmse"  # which metric decides the "best" model: rmse | mae | r2
 

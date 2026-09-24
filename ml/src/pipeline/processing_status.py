@@ -5,6 +5,7 @@ processed independently, so each gets its own tracked status).
 """
 
 import threading
+from src.pipeline.operations import checkpoint
 
 _statuses = {}  # {dataset_id: {status, step, progress, message, error}}
 _lock = threading.Lock()
@@ -22,6 +23,7 @@ def reset(dataset_id: int):
 
 
 def update(dataset_id: int, step: str, progress: int, message: str):
+    checkpoint()
     with _lock:
         if dataset_id not in _statuses:
             _statuses[dataset_id] = {}
@@ -63,3 +65,7 @@ def get_status(dataset_id: int) -> dict:
 def is_running(dataset_id: int) -> bool:
     with _lock:
         return _statuses.get(dataset_id, {}).get("status") == "running"
+
+def cancel(dataset_id):
+    with _lock:
+        _statuses[dataset_id] = {"status": "cancelled", "step": "cancelled", "progress": 0, "message": "Preprocessing cancelled. Uploaded data is unchanged.", "error": None}

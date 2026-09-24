@@ -1,0 +1,105 @@
+name: poverty-prediction-docker
+
+services:
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: poverty_prediction_db
+      MARIADB_USER: poverty_app
+      MARIADB_PASSWORD: ${DOCKER_DB_PASSWORD:?Run docker/prepare.ps1 first}
+      MARIADB_ROOT_PASSWORD: ${DOCKER_ROOT_PASSWORD:?Run docker/prepare.ps1 first}
+    volumes:
+      - database:/var/lib/mysql
+      - type: bind
+        source: ./docker-state/database.sql
+        target: /docker-entrypoint-initdb.d/01-database.sql
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  ml:
+    build: ./ml
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: poverty_prediction_db
+      DB_USER: poverty_app
+      DB_PASSWORD: ${DOCKER_DB_PASSWORD:?Run docker/prepare.ps1 first}
+    volumes:
+      - type: bind
+        source: ./docker-state/ml-data
+        target: /app/data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./docker-state/saved-models
+        target: /app/saved_models
+        bind:
+          create_host_path: false
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      PORT: "5000"
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: poverty_prediction_db
+      DB_USER: poverty_app
+      DB_PASSWORD: ${DOCKER_DB_PASSWORD:?Run docker/prepare.ps1 first}
+      ML_API_BASE_URL: http://ml:8000
+    secrets:
+      - source: firebase_admin
+        target: /app/configs/serviceAccountKey.json
+    volumes:
+      - ./docker/verify.cjs:/verification/verify.cjs:ro
+      - type: bind
+        source: ./docker-state/manifest.json
+        target: /verification/manifest.json
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      db:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5000/api/poverty/pipeline/train-status').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  database:
+
+secrets:
+  firebase_admin:
+    file: ./backend/configs/serviceAccountKey.json

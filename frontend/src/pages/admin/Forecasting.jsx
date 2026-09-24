@@ -1,5 +1,5 @@
 import { TrendingUp } from "lucide-react";
-import { useActuals, useLatestForecasts, usePipelineActions } from "../../hooks/usePoverty";
+import { useTimeline, useLatestForecasts, usePipelineActions } from "../../hooks/usePoverty";
 
 import Loader from "../../components/common/Loader";
 import ForecastButton from "../../components/admin/Forecasting/ForecastingButton";
@@ -7,14 +7,19 @@ import ForecastResultTable from "../../components/admin/Forecasting/ForecastingR
 import IndicatorTrendChart from "../../components/admin/Forecasting/IndicatorTrendChart";
 
 export default function Forecasting() {
-  const { data: actuals, loading: actualsLoading } = useActuals();
+  const { data: timeline, loading: actualsLoading, refetch: refetchTimeline } = useTimeline();
+  const actuals = timeline?.actuals;
   const { data: forecasts, loading: forecastsLoading, error: forecastsError, refetch } =
     useLatestForecasts();
-  const { runForecast, running } = usePipelineActions();
+  const { runForecast, running, error: pipelineError } = usePipelineActions();
 
   const handleRunForecast = async () => {
-    await runForecast();
-    refetch();
+    try {
+      await runForecast();
+      await Promise.all([refetch(), refetchTimeline()]);
+    } catch {
+      // The action hook exposes errors below; cancellation also rejects the request.
+    }
   };
 
   const isLoading = actualsLoading || forecastsLoading;
@@ -30,13 +35,16 @@ export default function Forecasting() {
           <div>
             <h1 className="text-xl font-bold text-[#002366] tracking-tight">Forecasting</h1>
             <p className="text-xs text-slate-500">
-              ARIMA-forecasted socioeconomic indicators for the next 3 years
+              Forecasts for the three years after the latest actual or interpolated year
             </p>
           </div>
         </div>
         <ForecastButton onRun={handleRunForecast} running={running} />
       </div>
 
+      {pipelineError && pipelineError !== "canceled" && (
+        <p role="alert" className="text-sm text-red-600">{pipelineError}</p>
+      )}
       {isLoading ? (
         <div className="flex justify-center py-6">
           <Loader />
@@ -48,7 +56,7 @@ export default function Forecasting() {
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
               Trend Visualization
             </h2>
-            <IndicatorTrendChart actuals={actuals} forecasts={forecasts} />
+            <IndicatorTrendChart actuals={actuals} forecasts={timeline?.forecasts} />
           </section>
 
           {/* Table */}

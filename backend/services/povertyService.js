@@ -1,9 +1,16 @@
 const axios = require("axios");
+const { operationContext } = require("../middlewares/operationMiddleware");
 const mlApiConfig = require("../configs/mlApi.config");
 
 const mlApi = axios.create({
   baseURL: mlApiConfig.baseURL,
   timeout: mlApiConfig.timeout,
+});
+
+mlApi.interceptors.request.use((config) => {
+  const id = operationContext.getStore();
+  if (id) config.headers["X-Operation-Id"] = id;
+  return config;
 });
 
 const PovertyService = {
@@ -82,8 +89,8 @@ const PovertyService = {
     try {
       const [actuals, forecasts, predictions] = await Promise.all([
         mlApi.get("/actuals", { params: { region } }),
-        mlApi.get("/forecasts/latest", { params: { region } }).catch(() => ({ data: [] })),
-        mlApi.get("/predictions/latest", { params: { region } }).catch(() => ({ data: [] })),
+        mlApi.get("/forecasts/latest", { params: { region, include_history: true } }).catch(() => ({ data: [] })),
+        mlApi.get("/predictions/latest", { params: { region, include_history: true } }).catch(() => ({ data: [] })),
       ]);
 
       return {

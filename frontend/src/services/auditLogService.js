@@ -1,4 +1,4 @@
-import * as AuditLogApi from "../api/auditLogApi";
+import * as AuditLogApi from "../api/auditLogAPI";
 
 const AuditLogService = {
   getLogs: async (page = 1, pageSize = 20) => {

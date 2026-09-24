@@ -8,6 +8,7 @@ Usage (from the ml/ folder):
     python -m src.models.ml.evaluate
 """
 
+from src.pipeline.operations import commit_section
 import json
 import shutil
 from pathlib import Path
@@ -29,7 +30,7 @@ SELECTION_METRIC = CONFIG["ml"]["selection_metric"]  # rmse | mae | r2
 def evaluate_all():
     """
     Runs cross-validated training for all active models and determines
-    the best one according to SELECTION_METRIC (averaged across folds).
+    the best one according to SELECTION_METRIC (pooled held-out forecast errors).
 
     Returns:
         cv_results (dict): {model_name: {rmse, mae, r2, fold_count}}
@@ -46,7 +47,7 @@ def evaluate_all():
     print()
     for name, metrics in cv_results.items():
         print(f"[evaluate] {name:15s} {format_metrics(metrics)} "
-              f"(avg over {metrics['fold_count']} folds)")
+              f"(pooled over {metrics['fold_count']} forecast windows)")
 
         if best_metrics is None or is_better(metrics, best_metrics, SELECTION_METRIC):
             best_metrics = metrics
@@ -59,13 +60,22 @@ def save_comparison_report(results: dict, best_model_name: str):
     """Saves all models' CV metrics + the winner to a JSON file for reference."""
     report = {
         "selection_metric": SELECTION_METRIC,
-        "validation_method": f"TimeSeriesSplit cross-validation (min {CONFIG['ml'].get('cv_folds', 3)} folds, min 10 training rows per fold)",
+        "validation_method": "Actual + interpolated training; expanding-window ARIMA + ML backtest on measured targets; nested chronological tuning",
+        "forecast_horizon_years": CONFIG["arima"]["forecast_horizon_years"],
+        "minimum_training_targets": CONFIG["ml"].get("min_train_size", 5),
+        "quality_warning": (
+            "The selected model has not demonstrated reliable forecast skill. "
+            "Compare it with the persistence baseline and review observed data coverage."
+            if (results[best_model_name]["r2"] is None or results[best_model_name]["r2"] < 0
+                or results[best_model_name]["rmse"] >= results[best_model_name]["persistence_baseline"]["rmse"])
+            else None
+        ),
         "best_model": best_model_name,
         "results": results,
     }
     report_path = SAVED_MODELS_DIR / "model_comparison_results.json"
     with open(report_path, "w") as f:
-        json.dump(report, f, indent=2)
+        json.dump(report, f, indent=2, allow_nan=False)
     print(f"\n[evaluate] Comparison report saved -> {report_path}")
 
 
@@ -79,8 +89,9 @@ def promote_best_model(best_model_name: str):
 
 def run():
     results, best_model_name, _ = evaluate_all()
-    save_comparison_report(results, best_model_name)
-    promote_best_model(best_model_name)
+    with commit_section():
+        save_comparison_report(results, best_model_name)
+        promote_best_model(best_model_name)
 
     print(f"\n[evaluate] WINNER: {best_model_name} "
           f"(selected on {SELECTION_METRIC.upper()}, cross-validated)")

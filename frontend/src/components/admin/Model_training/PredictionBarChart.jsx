@@ -1,3 +1,4 @@
+import { formatPrediction } from "../../../utils/formatPrediction";
 import {
   BarChart,
   Bar,
@@ -31,10 +32,10 @@ export default function PredictionsBarChart({ predictions }) {
           <YAxis tick={{ fontSize: 11 }} unit="%" />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
-            formatter={(value) => `${value}%`}
+            formatter={(value) => `${formatPrediction(value)}%`}
           />
           <Bar dataKey="predicted" name="Predicted Poverty Incidence" fill="#002366" radius={[6, 6, 0, 0]}>
-            <LabelList dataKey="predicted" position="top" fontSize={11} fill="#002366" formatter={(v) => `${v}%`} />
+            <LabelList dataKey="predicted" position="top" fontSize={11} fill="#002366" formatter={(v) => `${formatPrediction(v)}%`} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

@@ -1,5 +1,5 @@
 // Dependencies
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route, Navigate } from "react-router-dom";
 
 // Auth
 import { AuthProvider } from "./hooks/useAuth";
@@ -44,12 +44,9 @@ import { ToastProvider } from "./context/ToastContext";
 // Redirect if logged in
 import RedirectIfAuthenticated from "./routes/RedirectIfAuthenticated"; 
 
-function App() {
-  return (
-    <ToastProvider>
-      <AuthProvider>
-        <Router>
-          <Routes>
+const router = createBrowserRouter(createRoutesFromElements(
+  <>
+
             <Route
               path="/"
               element={
@@ -98,8 +95,15 @@ function App() {
 
             {/* FALLBACK ROUTE */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
+
+  </>
+));
+
+function App() {
+  return (
+    <ToastProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
       </AuthProvider>
     </ToastProvider>
   );

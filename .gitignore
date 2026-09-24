@@ -1,4 +1,3 @@
-```gitignore
 # =========================================
 # Node.js
 # =========================================
@@ -99,4 +98,7 @@ temp/
 # =========================================
 coverage/
 .pytest_cache/
-```
+# Local Docker snapshots and credentials
+docker-state/
+docker-snapshot-*/
+.env.docker

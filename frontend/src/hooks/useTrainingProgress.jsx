@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import PovertyService from "../services/povertyService";
 
 // Polls /pipeline/train-status every `intervalMs` while training is active.
@@ -9,6 +9,8 @@ export default function useTrainingProgress(intervalMs = 1500) {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(null);
   const pollRef = useRef(null);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -17,12 +19,14 @@ export default function useTrainingProgress(intervalMs = 1500) {
     }
   }, []);
 
+  useEffect(() => stopPolling, [stopPolling]);
+
   const poll = useCallback(() => {
     pollRef.current = setInterval(async () => {
       try {
         const data = await PovertyService.getTrainStatus();
         setStatus(data);
-        if (data.status === "completed" || data.status === "failed") {
+        if (data.status === "completed" || data.status === "failed" || data.status === "cancelled") {
           stopPolling();
         }
       } catch (err) {
@@ -39,7 +43,7 @@ export default function useTrainingProgress(intervalMs = 1500) {
       try {
         await triggerFn(); // e.g. PovertyService.runTrainAndEvaluate
         setStatus({ status: "running", step: "starting", progress: 0, message: "Starting..." });
-        poll();
+        if (mounted.current) poll();
       } catch (err) {
         setStartError(err.message);
       } finally {

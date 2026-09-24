@@ -6,11 +6,13 @@ forecast_inputs.py calls these functions to persist ARIMA outputs.
 """
 
 import pandas as pd
+from src.pipeline.operations import commit_step
 
 from src.database.base import get_session
 from src.database.models.forecasts import ForecastedIndicators
 
 
+@commit_step
 def insert_forecasts(records: list[dict]) -> int:
     """
     Bulk insert forecast rows. Each dict must match ForecastedIndicators columns.
@@ -51,6 +53,14 @@ def get_forecasts(region: str = None, model_run_id: str = None) -> pd.DataFrame:
         return pd.DataFrame(data)
     finally:
         session.close()
+
+
+def get_current_forecasts(region: str = None, include_history: bool = False) -> pd.DataFrame:
+    from src.database.repository.actuals_repo import get_actuals
+    from src.pipeline.year_selection import latest_by_year, select_window
+    actuals = get_actuals(region=region)
+    estimates = latest_by_year(get_forecasts(region=region), actuals)
+    return select_window(estimates, actuals, include_history=include_history)
 
 
 def get_latest_run_id(region: str = None) -> str:

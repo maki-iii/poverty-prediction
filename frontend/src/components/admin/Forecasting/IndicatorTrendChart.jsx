@@ -1,3 +1,4 @@
+import { buildTimeline } from "../../../utils/timeline.js";
 import { useState, useMemo } from "react";
 import {
   LineChart,
@@ -21,32 +22,10 @@ const INDICATORS = [
 export default function IndicatorTrendChart({ actuals, forecasts }) {
   const [selectedIndicator, setSelectedIndicator] = useState(INDICATORS[0].key);
 
-  const chartData = useMemo(() => {
-    if (!actuals) return [];
-
-    const actualPoints = actuals.map((row) => ({
-      year: row.year,
-      actual: row[selectedIndicator],
-      forecast: null,
-    }));
-
-    if (!forecasts || forecasts.length === 0) return actualPoints;
-
-    // Bridge the gap: connect the last actual year to the first forecast
-    // year so the line doesn't have a visual break.
-    const lastActual = actualPoints[actualPoints.length - 1];
-    const bridgePoint = lastActual
-      ? { year: lastActual.year, actual: lastActual.actual, forecast: lastActual.actual }
-      : null;
-
-    const forecastPoints = forecasts.map((row) => ({
-      year: row.year,
-      actual: null,
-      forecast: row[selectedIndicator],
-    }));
-
-    return bridgePoint ? [...actualPoints, ...forecastPoints] : [...actualPoints, ...forecastPoints];
-  }, [actuals, forecasts, selectedIndicator]);
+  const { points: chartData, segments } = useMemo(
+    () => buildTimeline(actuals, forecasts, selectedIndicator, selectedIndicator, "forecast"),
+    [actuals, forecasts, selectedIndicator],
+  );
 
   const firstForecastYear = forecasts?.[0]?.year;
 
@@ -89,13 +68,32 @@ export default function IndicatorTrendChart({ actuals, forecasts }) {
             />
           )}
 
+          {segments.map((segment) => (
+            <Line key={segment.key} dataKey={segment.key} type="linear"
+              stroke={segment.kind === "actual" ? "#002366" : segment.kind === "interpolated" ? "#d97706" : "#059669"}
+              strokeWidth={2}
+              strokeDasharray={segment.kind === "actual" ? undefined : "4 4"}
+              dot={false} activeDot={false} legendType="none" tooltipType="none"
+              connectNulls={false} isAnimationActive={false}
+            />
+          ))}
           <Line
             type="monotone"
             dataKey="actual"
             name="Actual"
             stroke="#002366"
-            strokeWidth={2}
-            dot={{ r: 2 }}
+            strokeWidth={0}
+            dot={{ r: 2, strokeWidth: 2 }}
+            connectNulls={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="interpolated"
+            name="Interpolated"
+            stroke="#d97706"
+            strokeWidth={0}
+            strokeDasharray="3 3"
+            dot={{ r: 2, strokeWidth: 2 }}
             connectNulls={false}
           />
           <Line
@@ -103,9 +101,9 @@ export default function IndicatorTrendChart({ actuals, forecasts }) {
             dataKey="forecast"
             name="Forecast"
             stroke="#059669"
-            strokeWidth={2}
+            strokeWidth={0}
             strokeDasharray="5 5"
-            dot={{ r: 2 }}
+            dot={{ r: 2, strokeWidth: 2 }}
             connectNulls
           />
         </LineChart>

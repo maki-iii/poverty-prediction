@@ -78,6 +78,10 @@ class PipelineRunResponse(BaseModel):
 
 
 class ModelComparisonOut(BaseModel):
+    validation_method: Optional[str] = None
+    quality_warning: Optional[str] = None
+    forecast_horizon_years: Optional[int] = None
+    minimum_training_targets: Optional[int] = None
     selection_metric: str
     best_model: str
     results: dict  # {model_name: {rmse, mae, r2}}

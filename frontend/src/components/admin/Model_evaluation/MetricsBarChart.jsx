@@ -44,7 +44,7 @@ export default function MetricsBarChart({ results, bestModel }) {
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-              formatter={(value) => value.toFixed(4)}
+              formatter={(value) => value == null ? "N/A" : Number(value).toFixed(4)}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="rmse" fill={COLORS.rmse} name="RMSE" radius={[4, 4, 0, 0]} />
@@ -62,10 +62,10 @@ export default function MetricsBarChart({ results, bestModel }) {
           <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} domain={[0, 1]} />
+            <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-              formatter={(value) => value.toFixed(4)}
+              formatter={(value) => value == null ? "N/A" : Number(value).toFixed(4)}
             />
             <Bar dataKey="r2" name="R²" radius={[4, 4, 0, 0]}>
               {data.map((entry, idx) => (

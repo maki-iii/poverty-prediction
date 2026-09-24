@@ -10,6 +10,7 @@ this would need to move to Redis/DB instead.
 """
 
 import threading
+from src.pipeline.operations import checkpoint, commit_step
 
 _status = {
     "status": "idle",       # idle | running | completed | failed
@@ -35,6 +36,7 @@ def reset():
 
 
 def update(step: str, progress: int, message: str):
+    checkpoint()
     with _lock:
         _status.update({
             "status": "running",
@@ -44,6 +46,7 @@ def update(step: str, progress: int, message: str):
         })
 
 
+@commit_step
 def complete(best_model: str, results: dict = None, selection_metric: str = None,
              prediction_years: str = None, triggered_by: str = None):
     with _lock:
@@ -93,3 +96,7 @@ def get_status() -> dict:
 def is_running() -> bool:
     with _lock:
         return _status["status"] == "running"
+
+def cancel():
+    with _lock:
+        _status.update(status="cancelled", step="cancelled", message="Training cancelled. Previously saved data is unchanged.", error=None)

@@ -21,6 +21,7 @@ import {
   LogOut,
   ShieldCheck,
 } from "lucide-react";
+import { useOperationGuard } from "../../context/OperationGuardContext";
 import { useAuth } from "../../hooks/useAuth";
 import ConfirmModal from "../common/ConfirmModal";
 import Loader from "../common/Loader";
@@ -358,18 +359,19 @@ export default function AdminSidebar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const requestLeave = useOperationGuard();
 
   const handleNavigate = (path) => {
     navigate(path);
     setMobileOpen(false);
   };
 
-  const handleLogoutRequest = () => setShowLogoutModal(true);
+  const handleLogoutRequest = () => requestLeave(() => setShowLogoutModal(true));
 
   const handleLogoutConfirm = async () => {
     setIsLoggingOut(true);
-    navigate("/admin/login", { replace: true });
     await logout();
+    navigate("/", { replace: true });
     setIsLoggingOut(false);
     setShowLogoutModal(false);
   };

@@ -4,7 +4,9 @@ const PovertyController = require("../controllers/povertyController");
 const verifyToken = require("../middlewares/authMiddleware");
 const verifyyAdmin = require("../middlewares/adminMiddleware");
 
+const { trackOperation, cancelOperation } = require("../middlewares/operationMiddleware");
 const router = express.Router();
+router.post("/operations/:operationId/cancel", verifyToken, cancelOperation);
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -20,8 +22,8 @@ router.get("/training-runs", PovertyController.getTrainingRuns);
 
 // --- Mutations (require auth for audit logging) ---
 router.delete("/actuals/:year", verifyToken, verifyyAdmin, PovertyController.deleteActual);
-router.post("/pipeline/forecast", verifyToken, verifyyAdmin, PovertyController.runForecast);
-router.post("/pipeline/train", verifyToken, verifyyAdmin, PovertyController.runTrainAndEvaluate);
+router.post("/pipeline/forecast", verifyToken, verifyyAdmin, trackOperation, PovertyController.runForecast);
+router.post("/pipeline/train", verifyToken, verifyyAdmin, trackOperation, PovertyController.runTrainAndEvaluate);
 router.post("/pipeline/predict", verifyToken, verifyyAdmin, PovertyController.runPredict);
 router.post("/pipeline/run-full", verifyToken, verifyyAdmin, PovertyController.runFullPipeline);
 router.post("/actuals/merge", verifyToken, verifyyAdmin, upload.single("file"), PovertyController.mergeNewActuals);

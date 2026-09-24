@@ -1,10 +1,17 @@
 const axios = require("axios");
+const { operationContext } = require("../middlewares/operationMiddleware");
 const FormData = require("form-data");
 const mlApiConfig = require("../configs/mlApi.config");
 
 const mlApi = axios.create({
   baseURL: mlApiConfig.baseURL,
   timeout: mlApiConfig.timeout,
+});
+
+mlApi.interceptors.request.use((config) => {
+  const id = operationContext.getStore();
+  if (id) config.headers["X-Operation-Id"] = id;
+  return config;
 });
 
 const DatasetService = {

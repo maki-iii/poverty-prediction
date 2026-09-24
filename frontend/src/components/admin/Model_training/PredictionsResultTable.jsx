@@ -1,3 +1,5 @@
+import { formatPrediction } from "../../../utils/formatPrediction";
+
 export default function PredictionsResultTable({ predictions }) {
   if (!predictions || predictions.length === 0) {
     return (
@@ -35,7 +37,7 @@ export default function PredictionsResultTable({ predictions }) {
               <td className="px-3 py-2 text-slate-700 font-medium">{p.region}</td>
               <td className="px-3 py-2 text-slate-600">{p.year}</td>
               <td className="px-3 py-2 text-slate-800 font-semibold">
-                {p.predicted_poverty_incidence}%
+                {formatPrediction(p.predicted_poverty_incidence)}%
               </td>
               <td className="px-3 py-2">
                 <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[#002366]/10 text-[#002366] capitalize">
