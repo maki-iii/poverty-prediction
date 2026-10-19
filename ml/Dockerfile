@@ -9,4 +9,4 @@ COPY src ./src
 RUN mkdir -p data/uploads saved_models/ml
 EXPOSE 8000
 # Progress and cancellation state is process-local: keep one worker.
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["sh", "-c", "python -m src.database.init_db && exec uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 1"]

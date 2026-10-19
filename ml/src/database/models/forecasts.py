@@ -27,6 +27,7 @@ class ForecastedIndicators(Base):
 
     arima_order = Column(String(20))
     model_run_id = Column(String(50))
+    indicator_basis = Column(String(50), nullable=True)
 
     created_at = Column(TIMESTAMP, server_default=func.now())
 

@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { useMemo } from "react";
 import {
   LineChart,
@@ -29,7 +30,7 @@ function useYoyData(actuals) {
         prevYear: prev.year,
         prevValue: prev.poverty_incidence,
         currValue: curr.poverty_incidence,
-        change: parseFloat((curr.poverty_incidence - prev.poverty_incidence).toFixed(2)),
+        change: curr.poverty_incidence - prev.poverty_incidence,
       });
     }
 
@@ -54,10 +55,10 @@ export function YoyChangeBars({ actuals, height = 260 }) {
         <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} unit=" pts" />
+          <YAxis tickFormatter={formatNumber} tick={{ fontSize: 11 }} unit=" pts" />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
-            formatter={(value) => `${value > 0 ? "+" : ""}${value} pts`}
+            formatter={(value) => `${value > 0 ? "+" : ""}${formatNumber(value)} pts`}
           />
           <ReferenceLine y={0} stroke="#cbd5e1" />
           <Line

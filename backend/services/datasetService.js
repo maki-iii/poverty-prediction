@@ -71,12 +71,12 @@ const DatasetService = {
     }
   },
 
-  processDataset: async (datasetId, { surveyType, year, inflationRate, povertyIncidence }) => {
+  processDataset: async (datasetId, { surveyType, year, povertyThreshold, povertyIncidence }) => {
     try {
       const { data } = await mlApi.post(`/datasets/${datasetId}/process`, {
         survey_type: surveyType,
         year,
-        inflation_rate: inflationRate,
+        poverty_threshold: povertyThreshold,
         poverty_incidence: povertyIncidence,
       });
       return data;

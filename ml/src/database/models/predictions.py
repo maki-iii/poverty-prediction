@@ -12,6 +12,7 @@ from src.database.base import Base
 
 class PovertyPrediction(Base):
     __tablename__ = "predictions"
+    indicator_basis = Column(String(50), nullable=True)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     region = Column(String(50), nullable=False)

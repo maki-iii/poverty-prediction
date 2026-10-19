@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { useState, useMemo } from "react";
 import {
   ScatterChart,
@@ -14,7 +15,6 @@ const INDICATORS = [
   { key: "avg_household_income", label: "Household Income" },
   { key: "avg_household_expenditure", label: "Household Expenditure" },
   { key: "avg_family_size", label: "Family Size" },
-  { key: "inflation_rate", label: "Inflation Rate (%)" },
 ];
 
 function correlation(xs, ys) {
@@ -86,19 +86,19 @@ export function CorrelationChart({ actuals, selectedIndicator, onChangeIndicator
       <ResponsiveContainer width="100%" height={height}>
         <ScatterChart margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-          <XAxis
+          <XAxis tickFormatter={formatNumber}
             type="number"
             dataKey="x"
             name={indicatorLabel}
             tick={{ fontSize: 11 }}
             label={{ value: indicatorLabel, position: "insideBottom", offset: -5, fontSize: 10, fill: "#94a3b8" }}
           />
-          <YAxis type="number" dataKey="y" name="Poverty Incidence" tick={{ fontSize: 11 }} />
+          <YAxis tickFormatter={formatNumber} type="number" dataKey="y" name="Poverty Incidence" tick={{ fontSize: 11 }} />
           <ZAxis range={[60, 60]} />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
-            formatter={(value, name) => (name === "Poverty Incidence" ? `${value}%` : value)}
+            formatter={(value, name) => (name === "Poverty Incidence" ? `${formatNumber(value)}%` : formatNumber(value))}
             labelFormatter={() => ""}
           />
           <Scatter data={chartData} fill="#002366" />
@@ -107,7 +107,7 @@ export function CorrelationChart({ actuals, selectedIndicator, onChangeIndicator
 
       <div className="mt-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
         <p className="text-[11px] text-slate-600">
-          Correlation coefficient: <span className="font-bold text-slate-800">{r.toFixed(3)}</span> —{" "}
+          Correlation coefficient: <span className="font-bold text-slate-800">{formatNumber(r)}</span> —{" "}
           <span className="font-semibold">{strengthLabel} {directionLabel}</span> relationship
         </p>
       </div>

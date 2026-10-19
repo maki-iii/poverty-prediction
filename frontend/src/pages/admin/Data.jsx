@@ -1,6 +1,7 @@
+import { formatNumber } from "../../utils/formatNumber.js";
 import { useState, useMemo, useEffect } from "react";
 import { Table2 } from "lucide-react";
-import { useActuals, usePipelineActions } from "../../hooks/usePoverty";
+import { useTimeline, usePipelineActions } from "../../hooks/usePoverty";
 
 import SearchBar from "../../components/common/SearchBar";
 import DateRangeFilter from "../../components/common/DateRangeFilter";
@@ -17,7 +18,8 @@ export default function Data() {
   const [rowToDelete, setRowToDelete] = useState(null);
   const toast = useToast();
 
-  const { data: actuals, loading, error, refetch } = useActuals();
+  const { data: timeline, loading, error, refetch } = useTimeline();
+  const actuals = timeline?.actuals;
   const { deleteActual, running } = usePipelineActions();
 
   // --- Client-side filtering ---
@@ -53,12 +55,20 @@ export default function Data() {
     resetPage();
   }, [search, dateRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleDelete = (row) => {
+    if (timeline?.data_history === "fies_only" && row.source?.toLowerCase() === "interpolated") {
+      toast.info("This value is calculated from surrounding FIES observations and updates automatically when those observations change.");
+      return;
+    }
+    setRowToDelete(row);
+  };
+
   const handleConfirmDelete = async () => {
     if (!rowToDelete) return;
     try {
       await deleteActual(rowToDelete.year, rowToDelete.region);
       toast.success(`Deleted ${rowToDelete.region} ${rowToDelete.year} from actuals`);
-      refetch();
+      await refetch();
     } catch (err) {
       toast.error(err.message || "Failed to delete row");
     } finally {
@@ -103,7 +113,7 @@ export default function Data() {
           <p className="text-sm text-red-600">{error}</p>
         ) : (
           <>
-            <DataTable actuals={paginatedActuals} onDelete={setRowToDelete} />
+            <DataTable actuals={paginatedActuals} onDelete={handleDelete} />
             <Pagination
               currentPage={currentPage}
               totalItems={totalItems}
@@ -128,7 +138,7 @@ export default function Data() {
           fields={[
             { key: "region", label: "Region", value: rowToDelete.region },
             { key: "year", label: "Year", value: rowToDelete.year },
-            { key: "poverty", label: "Poverty Incidence", value: `${rowToDelete.poverty_incidence}%` },
+            { key: "poverty", label: "Poverty Incidence", value: `${formatNumber(rowToDelete.poverty_incidence)}%` },
           ]}
         />
       )}

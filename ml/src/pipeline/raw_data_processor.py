@@ -1,28 +1,18 @@
-"""
-Generic raw survey microdata processor. Takes a household-level survey
-file (APIS, FIES, etc.) and a survey_type, resolves the correct column
-names via configs/survey_mappings.yaml, filters to the target region,
-and computes the 5 auto-derivable indicators:
-    - avg_household_income
-    - avg_household_expenditure
-    - avg_family_size
-    - employment_rate (%)
-    - avg_educational_attainment (% college graduate or higher)
+"""Weighted FIES family indicators below an annual per-capita poverty threshold.
 
-year, inflation_rate, and poverty_incidence are NOT computed here --
-they're supplied manually by the user during the Process step.
-
-Usage: imported by src/pipeline/dataset_management.py -- not run directly,
-but can be tested standalone:
-    python -m src.pipeline.raw_data_processor <file_path> <survey_type>
+The user supplies the year, threshold and official family poverty incidence.
+The target is never recomputed from this filtered group.
 """
 
 import sys
+import math
 from pathlib import Path
 
 import pandas as pd
 import yaml
+import numpy as np
 from src.pipeline import processing_status
+from src.pipeline.indicator_basis import INDICATOR_BASIS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # ml/src/pipeline/raw_data_processor.py -> ml/
 
@@ -47,15 +37,12 @@ def _clean_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series.astype(str).str.strip(), errors="coerce")
 
 
-def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None) -> dict:
-    """
-    Loads a raw survey file, filters to the target region (NCR), and
-    computes the 5 auto-derivable indicators.
-
-    Returns a dict with: region, row_count_used, avg_household_income,
-    avg_household_expenditure, avg_family_size, employment_rate,
-    avg_educational_attainment.
-    """
+def process_raw_survey(file_path: Path, survey_type: str, poverty_threshold: float, dataset_id: int = None) -> dict:
+    """Use the same below-threshold families and family weights for all three means."""
+    if survey_type != "fies":
+        raise ValueError("Only FIES datasets are supported.")
+    if not math.isfinite(poverty_threshold) or poverty_threshold <= 0:
+        raise ValueError("Poverty threshold must be positive annual pesos per person.")
     if survey_type not in SURVEY_MAPPINGS:
         raise ValueError(
             f"Unknown survey_type '{survey_type}'. "
@@ -65,7 +52,9 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
 
     if dataset_id is not None:
         processing_status.update(dataset_id, "reading_file", 10, "Reading raw survey file...")
-    df = pd.read_csv(file_path, low_memory=False)
+    is_excel = Path(file_path).suffix.lower() in (".xlsx", ".xls")
+    df = pd.read_excel(file_path, nrows=0) if is_excel else pd.read_csv(file_path, nrows=0)
+    df.columns = df.columns.str.strip()
 
     if dataset_id is not None:
         processing_status.update(dataset_id, "resolving_columns", 25, "Resolving column mappings...")
@@ -75,6 +64,13 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
     expenditure_col = _resolve_column(df, mapping["expenditure_col"], "expenditure")
     family_size_col = _resolve_column(df, mapping["family_size_col"], "family_size")
     region_col = _resolve_column(df, mapping["region_col"], "region")
+    weight_col = _resolve_column(df, mapping["weight_col"], "survey weight")
+    wanted = {income_col, expenditure_col, family_size_col, region_col, weight_col}
+    # Read only the five needed columns, even in very large microdata files.
+    select = lambda name: str(name).strip() in wanted
+    df = (pd.read_excel(file_path, usecols=select) if is_excel
+          else pd.read_csv(file_path, usecols=select, low_memory=False))
+    df.columns = df.columns.str.strip()
 
     if dataset_id is not None:
         processing_status.update(dataset_id, "filtering_region", 40, "Filtering to target region...")
@@ -97,21 +93,33 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
     if dataset_id is not None:
         processing_status.update(dataset_id, "computing_income", 70, "Computing income & expenditure...")
 
-    # --- Compute averages ---
+    # Classify using annual income PER PERSON, not total family income.
     income = _clean_numeric(df_filtered[income_col])
     expenditure = _clean_numeric(df_filtered[expenditure_col])
     family_size = _clean_numeric(df_filtered[family_size_col])
-
-    avg_household_income = round(float(income.mean()), 2)
-    avg_household_expenditure = round(float(expenditure.mean()), 2)
-    avg_family_size = round(float(family_size.mean()), 2)
+    weights = _clean_numeric(df_filtered[weight_col])
+    valid = (np.isfinite(income) & np.isfinite(expenditure) & np.isfinite(family_size)
+             & np.isfinite(weights) & (family_size > 0) & (weights > 0) & (expenditure >= 0))
+    if not valid.all():
+        raise ValueError(f"{int((~valid).sum())} NCR rows have invalid income, expenditure, family size, or survey weight. Correct them before processing.")
+    poor = income / family_size < poverty_threshold
+    if not poor.any():
+        raise ValueError("No NCR families are below this annual per-person poverty threshold. Check its year and units.")
+    poor_weights = weights[poor]
+    def weighted_mean(values):
+        return float(np.average(values[poor], weights=poor_weights))
+    avg_household_income = weighted_mean(income)
+    avg_household_expenditure = weighted_mean(expenditure)
+    avg_family_size = weighted_mean(family_size)
 
     if dataset_id is not None:
         processing_status.update(dataset_id, "finalizing", 95, "Finalizing results...")
 
     return {
         "region": region_name,
-        "row_count_used": len(df_filtered),
+        "row_count_used": int(poor.sum()),
+        "poverty_threshold": float(poverty_threshold),
+        "indicator_basis": INDICATOR_BASIS,
         "avg_household_income": avg_household_income,
         "avg_household_expenditure": avg_household_expenditure,
         "avg_family_size": avg_family_size,
@@ -119,14 +127,14 @@ def process_raw_survey(file_path: Path, survey_type: str, dataset_id: int = None
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python -m src.pipeline.raw_data_processor <file_path> <survey_type>")
+    if len(sys.argv) < 4:
+        print("Usage: python -m src.pipeline.raw_data_processor <file_path> fies <annual_per_person_threshold>")
         sys.exit(1)
 
     file_path = Path(sys.argv[1])
     survey_type = sys.argv[2]
 
-    result = process_raw_survey(file_path, survey_type)
+    result = process_raw_survey(file_path, survey_type, float(sys.argv[3]))
     print("\n[raw_data_processor] Computed indicators:")
     for key, value in result.items():
         print(f"  {key}: {value}")

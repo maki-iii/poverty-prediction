@@ -1,7 +1,8 @@
-"""Expanding-window evaluation of the complete ARIMA -> regression pipeline.
+"""Selectable chronological pipeline validation or experimental shuffled K-fold.
 
-Only observed targets are scored. Each origin forecasts indicators without access
-to held-out years. Tuning occurs inside the training window, never on outer tests.
+Time-series mode scores measured targets with forecast indicators. K-fold scores
+actual and interpolated rows with existing indicators; it is not a forecast test.
+Both modes tune inside outer training splits and fit final models on all history.
 """
 from src.pipeline.operations import checkpoint, commit_section
 import time
@@ -9,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from sklearn.model_selection import ParameterGrid
+from sklearn.model_selection import ParameterGrid, KFold
 from sklearn.base import clone
 from src.preprocess.load_clean import get_training_frame, get_forecast_input_data, FEATURE_COLUMNS, TARGET_COLUMN
 from src.models.forecasting.forecast_inputs import fit_and_forecast
@@ -18,10 +19,26 @@ from src.metrics.metrics import compute_metrics
 from src.pipeline import training_status
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-SAVED_MODELS_DIR = PROJECT_ROOT / "saved_models" / "ml"
+from src.pipeline.indicator_basis import SAVED_MODELS_DIR
 CONFIG = yaml.safe_load((PROJECT_ROOT / "configs/config.yaml").read_text())
 CV_FOLDS = CONFIG["ml"].get("cv_folds", 5)
 MIN_TRAIN_SIZE = CONFIG["ml"].get("min_train_size", 5)
+
+
+def validation_method():
+    method = CONFIG["ml"].get("validation_method", "time_series")
+    if method not in ("time_series", "kfold"):
+        raise ValueError(f"Unsupported validation_method: {method}")
+    return method
+
+
+def prepare_kfold(X):
+    """Experimental ML-only validation on actual and interpolated rows."""
+    if CV_FOLDS < 2 or len(X) < CV_FOLDS:
+        raise ValueError(f"K-fold requires at least {CV_FOLDS} rows and two folds.")
+    splitter = KFold(n_splits=CV_FOLDS, shuffle=True,
+                     random_state=CONFIG["ml"].get("random_state", 42))
+    return [(tr, te, X.iloc[te].copy()) for tr, te in splitter.split(X)]
 
 
 def validation_folds(years, horizon=3, max_folds=5, min_train_size=5, observed_mask=None):
@@ -101,7 +118,7 @@ def prepare_validation(X, years, indicator_X, indicator_years, min_train_size=No
     return prepared
 
 
-def evaluate_model(name, X, y, years, folds, inner_folds=None):
+def evaluate_model(name, X, y, years, folds, inner_folds=None, method="time_series"):
     truth, predicted, diagnostic, baseline = [], [], [], []
     details = []
     started = time.perf_counter()
@@ -114,7 +131,8 @@ def evaluate_model(name, X, y, years, folds, inner_folds=None):
         truth.extend(actual)
         predicted.extend(estimates)
         diagnostic.extend(observed_input_estimates)
-        baseline.extend([float(y.iloc[train[-1]])] * len(test))
+        baseline_value = float(y.iloc[train].mean()) if method == "kfold" else float(y.iloc[train[-1]])
+        baseline.extend([baseline_value] * len(test))
         details.append({
             "fold": number, "train_size": len(train), "test_size": len(test),
             "train_years": f"{years.iloc[train].min()}-{years.iloc[train].max()}",
@@ -127,7 +145,7 @@ def evaluate_model(name, X, y, years, folds, inner_folds=None):
     return {**metrics, "fold_count": len(folds), "test_points": len(truth),
         "fold_results": details,
         "observed_input_metrics": compute_metrics(truth, diagnostic),
-        "persistence_baseline": compute_metrics(truth, baseline),
+        ("mean_baseline" if method == "kfold" else "persistence_baseline"): compute_metrics(truth, baseline),
         "cv_elapsed_sec": round(time.perf_counter() - started, 3)}
 
 
@@ -136,19 +154,25 @@ def train_all_models():
     frame = get_training_frame()
     X, y, years = frame[FEATURE_COLUMNS], frame[TARGET_COLUMN], frame["year"]
     observed_mask = frame["source"].str.lower() != "interpolated"
-    # Validation must not read forecast batches generated with later information.
-    indicator_X, indicator_years = get_forecast_input_data(include_forecasts=False)
-    training_status.update(step="preprocessing", progress=10, message="Backtesting indicator forecasts...")
-    cache = {}
-    folds = prepare_validation(X, years, indicator_X, indicator_years, cache=cache, observed_mask=observed_mask)
-    inner_folds = [prepare_validation(X.iloc[tr], years.iloc[tr], indicator_X, indicator_years,
-                   min_train_size=3, cache=cache, allow_empty=True, observed_mask=observed_mask.iloc[tr]) for tr, _, _ in folds]
+    method = validation_method()
+    if method == "kfold":
+        training_status.update(step="preprocessing", progress=10, message="Preparing experimental shuffled K-fold validation...")
+        folds = prepare_kfold(X)
+        inner_folds = [prepare_kfold(X.iloc[tr]) for tr, _, _ in folds]
+    else:
+        # Validation must not read forecast batches generated with later information.
+        indicator_X, indicator_years = get_forecast_input_data(include_forecasts=False)
+        training_status.update(step="preprocessing", progress=10, message="Backtesting indicator forecasts...")
+        cache = {}
+        folds = prepare_validation(X, years, indicator_X, indicator_years, cache=cache, observed_mask=observed_mask)
+        inner_folds = [prepare_validation(X.iloc[tr], years.iloc[tr], indicator_X, indicator_years,
+                       min_train_size=3, cache=cache, allow_empty=True, observed_mask=observed_mask.iloc[tr]) for tr, _, _ in folds]
     results, fitted = {}, {}
     names = CONFIG["ml"]["active_models"]
     for index, name in enumerate(names):
         training_status.update(step="training", progress=int(15 + index / len(names) * 45),
-            message=f"Validating forecast pipeline with {name}...")
-        results[name] = evaluate_model(name, X, y, years, folds, inner_folds)
+            message=f"Validating {name} using {method}...")
+        results[name] = evaluate_model(name, X, y, years, folds, inner_folds, method=method)
         results[name]["training_points"] = len(frame)
         results[name]["observed_training_points"] = int(observed_mask.sum())
         results[name]["interpolated_training_points"] = int((~observed_mask).sum())

@@ -36,6 +36,8 @@ class UploadedDataset(Base):
     processed_avg_family_size = Column(DECIMAL(4, 2), nullable=True)
     processed_inflation_rate = Column(DECIMAL(5, 2), nullable=True)
     processed_poverty_incidence = Column(DECIMAL(5, 2), nullable=True)
+    processed_poverty_threshold = Column(DECIMAL(12, 2), nullable=True)
+    indicator_basis = Column(String(50), nullable=True)
 
     status = Column(
         Enum("pending", "processed", "merged", "failed", name="dataset_status_enum"),

@@ -59,13 +59,22 @@ import json
 from pathlib import Path as _Path
 
 PROJECT_ROOT = _Path(__file__).resolve().parents[2]  # ml/src/api/main.py -> ml/
-SAVED_MODELS_DIR = PROJECT_ROOT / "saved_models" / "ml"
+from src.pipeline.indicator_basis import SAVED_MODELS_DIR
 
 app = FastAPI(
     title="NCR Poverty Prediction API",
     description="Serves actuals, ARIMA-forecasted inputs, and ML-predicted poverty incidence.",
     version="1.0.0",
 )
+
+
+@app.get("/history", tags=["actuals"])
+def active_history(region: str = "NCR"):
+    from src.pipeline.year_selection import historical_rows
+    from src.preprocess.history_mode import history_mode
+    df = historical_rows(get_actuals(region=region))
+    # Serialize missing values as null, not NaN; preserve raw /actuals for management.
+    return {"data_history": history_mode(), "rows": json.loads(df.to_json(orient="records", date_format="iso"))}
 
 # Allow a frontend (e.g. React on a different port) to call this API during dev.
 # Tighten allow_origins to your actual frontend URL before deploying.
@@ -260,32 +269,7 @@ def trigger_full_pipeline():
 # =======================================================================
 @app.post("/actuals/merge", response_model=MergeActualsResponse, tags=["actuals"])
 def merge_new_actuals(file: UploadFile = File(...)):
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="File must be an .xlsx or .xls file.")
-
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-            tmp.write(file.file.read())
-            tmp_path = Path(tmp.name)
-
-        df = load_new_actuals_file(tmp_path)
-        df["source"] = "actual"
-
-        count = 0
-        for _, row in df.iterrows():
-            upsert_year(row.to_dict())
-            count += 1
-
-        tmp_path.unlink(missing_ok=True)
-
-        return MergeActualsResponse(
-            status="success",
-            message=f"Merged {count} year(s) into actuals. "
-                    f"Run /pipeline/run-full to refresh forecasts/predictions.",
-            rows_merged=count,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=410, detail="Upload FIES microdata through Dataset Management, process it with an annual per-person poverty threshold, then merge the reviewed result.")
 
 
 # =======================================================================
@@ -351,7 +335,7 @@ def process_dataset_endpoint(dataset_id: int, request: ProcessDatasetRequest,
             dataset_id=dataset_id,
             survey_type=request.survey_type,
             year=request.year,
-            inflation_rate=request.inflation_rate,
+            poverty_threshold=request.poverty_threshold,
             poverty_incidence=request.poverty_incidence,
         )
         return StartProcessResponse(

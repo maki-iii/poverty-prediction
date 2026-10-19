@@ -1,13 +1,16 @@
 """Resolve annual estimates without losing earlier batches or disguising estimates as actuals."""
 import pandas as pd
+from src.preprocess.history_mode import history_mode, fies_history
 
 
 def historical_rows(actuals):
     """Actual and interpolated history is eligible; generated predictions are not."""
+    if not actuals.empty and history_mode() == "fies_only":
+        return fies_history(actuals)
     if actuals.empty or "source" not in actuals:
         return actuals.copy()
     return actuals.loc[actuals["source"].str.lower().isin(
-        ["seed", "actual", "fies", "apis", "interpolated"]
+        ["seed", "actual", "fies", "interpolated"]
     )].copy()
 
 

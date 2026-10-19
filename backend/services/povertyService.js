@@ -88,13 +88,14 @@ const PovertyService = {
   getTimeline: async (region = "NCR") => {
     try {
       const [actuals, forecasts, predictions] = await Promise.all([
-        mlApi.get("/actuals", { params: { region } }),
+        mlApi.get("/history", { params: { region } }),
         mlApi.get("/forecasts/latest", { params: { region, include_history: true } }).catch(() => ({ data: [] })),
         mlApi.get("/predictions/latest", { params: { region, include_history: true } }).catch(() => ({ data: [] })),
       ]);
 
       return {
-        actuals: actuals.data,
+        actuals: actuals.data.rows,
+        data_history: actuals.data.data_history,
         forecasts: forecasts.data,
         predictions: predictions.data,
       };

@@ -30,11 +30,11 @@ const DatasetService = {
     return data;
   },
 
-  processDataset: async (datasetId, { surveyType, year, inflationRate, povertyIncidence }) => {
+  processDataset: async (datasetId, { surveyType, year, povertyThreshold, povertyIncidence }) => {
     const { data } = await DatasetApi.processDataset(datasetId, {
       surveyType,
       year,
-      inflationRate,
+      povertyThreshold,
       povertyIncidence,
     });
     return data;

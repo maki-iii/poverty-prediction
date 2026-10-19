@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Minus, Activity } from "lucide-react";
 
@@ -69,13 +70,13 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
             <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
               {lastActual.year} Actual
             </p>
-            <p className="text-lg font-bold text-slate-700">{lastActual.poverty_incidence}%</p>
+            <p className="text-lg font-bold text-slate-700">{formatNumber(lastActual.poverty_incidence)}%</p>
           </div>
           <div className={`bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-xl p-3 text-white shadow-md`}>
             <p className="text-[9px] font-semibold uppercase tracking-wider text-white/70 mb-1">
               {lastPrediction.year} Projected
             </p>
-            <p className="text-lg font-bold">{lastPrediction.predicted_poverty_incidence}%</p>
+            <p className="text-lg font-bold">{formatNumber(lastPrediction.predicted_poverty_incidence)}%</p>
           </div>
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
@@ -83,7 +84,7 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
             </p>
             <p className={`text-lg font-bold ${accentText}`}>
               {overallChange > 0 ? "+" : ""}
-              {overallChange.toFixed(2)}
+              {formatNumber(overallChange)}
             </p>
           </div>
         </div>
@@ -94,13 +95,13 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
           <p className="text-[11px] text-slate-700 leading-snug">
             Poverty incidence in <span className="font-bold">{lastActual.region}</span> is projected to{" "}
             <span className={`font-bold ${accentText}`}>{direction}</span> from{" "}
-            <span className="font-bold">{lastActual.poverty_incidence}%</span> in {lastActual.year} to{" "}
-            <span className="font-bold">{lastPrediction.predicted_poverty_incidence}%</span> by{" "}
+            <span className="font-bold">{formatNumber(lastActual.poverty_incidence)}%</span> in {lastActual.year} to{" "}
+            <span className="font-bold">{formatNumber(lastPrediction.predicted_poverty_incidence)}%</span> by{" "}
             {lastPrediction.year}, a{" "}
             <span className={`font-bold ${accentText}`}>
               {overallChange > 0 ? "+" : ""}
-              {overallChange.toFixed(2)} percentage point ({overallPctChange > 0 ? "+" : ""}
-              {overallPctChange.toFixed(1)}%)
+              {formatNumber(overallChange)} percentage point ({overallPctChange > 0 ? "+" : ""}
+              {formatNumber(overallPctChange)}%)
             </span>{" "}
             change over {lastPrediction.year - lastActual.year} years.
           </p>
@@ -118,7 +119,7 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
                   Predicted
                 </th>
                 <th className="px-3.5 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">
-                  vs {lastActual.year} ({lastActual.poverty_incidence}%)
+                  vs {lastActual.year} ({formatNumber(lastActual.poverty_incidence)}%)
                 </th>
               </tr>
             </thead>
@@ -126,7 +127,7 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
               {rows.map((row) => (
                 <tr key={row.year} className="hover:bg-slate-50 transition-colors">
                   <td className="px-3.5 py-2.5 text-slate-700 font-semibold">{row.year}</td>
-                  <td className="px-3.5 py-2.5 text-slate-600 font-medium">{row.predicted}%</td>
+                  <td className="px-3.5 py-2.5 text-slate-600 font-medium">{formatNumber(row.predicted)}%</td>
                   <td className="px-3.5 py-2.5">
                     <span
                       className={`px-2 py-1 rounded-full text-[10px] font-bold ${
@@ -138,8 +139,8 @@ export default function PredictionsTrendCard({ actuals, predictions }) {
                       }`}
                     >
                       {row.change > 0 ? "+" : ""}
-                      {row.change.toFixed(2)} pts ({row.pctChange > 0 ? "+" : ""}
-                      {row.pctChange.toFixed(1)}%)
+                      {formatNumber(row.change)} pts ({row.pctChange > 0 ? "+" : ""}
+                      {formatNumber(row.pctChange)}%)
                     </span>
                   </td>
                 </tr>

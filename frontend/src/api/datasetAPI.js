@@ -23,11 +23,11 @@ export const uploadDataset = (file, onProgress) => {
 export const getProcessStatus = (datasetId) =>
   axiosInstance.get(`${BASE}/${datasetId}/process-status`);
 
-export const processDataset = (datasetId, { surveyType, year, inflationRate, povertyIncidence }) =>
+export const processDataset = (datasetId, { surveyType, year, povertyThreshold, povertyIncidence }) =>
   axiosInstance.post(`${BASE}/${datasetId}/process`, {
     surveyType,
     year,
-    inflationRate,
+    povertyThreshold,
     povertyIncidence,
   });
 

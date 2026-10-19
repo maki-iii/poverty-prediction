@@ -93,18 +93,20 @@ const DatasetController = {
   processDataset: async (req, res) => {
     try {
       const { id } = req.params;
-      const { surveyType, year, inflationRate, povertyIncidence } = req.body;
+      const { surveyType = "fies", year, povertyThreshold, povertyIncidence } = req.body;
 
-      if (!surveyType || !year || inflationRate === undefined || povertyIncidence === undefined) {
+      if (surveyType !== "fies" || !Number.isInteger(year) || year < 1900 || year > 2100 ||
+          typeof povertyThreshold !== "number" || !Number.isFinite(povertyThreshold) || povertyThreshold <= 0 ||
+          typeof povertyIncidence !== "number" || !Number.isFinite(povertyIncidence) || povertyIncidence < 0 || povertyIncidence > 100) {
         return res.status(400).json({
-          message: "surveyType, year, inflationRate, and povertyIncidence are all required",
+          message: "FIES, a valid year, a positive annual per-person poverty threshold, and poverty incidence between 0 and 100 are required",
         });
       }
 
       const result = await DatasetService.processDataset(id, {
         surveyType,
         year,
-        inflationRate,
+        povertyThreshold,
         povertyIncidence,
       });
 

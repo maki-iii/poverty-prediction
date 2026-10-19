@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import {
   BarChart,
   Bar,
@@ -14,7 +15,6 @@ const FEATURE_LABELS = {
   avg_household_income: "Household Income",
   avg_household_expenditure: "Household Expenditure",
   avg_family_size: "Family Size",
-  inflation_rate: "Inflation Rate",
 };
 
 export default function FeatureImportanceCard({ data }) {
@@ -58,14 +58,14 @@ export default function FeatureImportanceCard({ data }) {
               {FEATURE_LABELS[data.top_feature] || data.top_feature}
             </p>
             <p className="text-3xl font-black leading-none">
-              {data.top_feature_pct}
+              {formatNumber(data.top_feature_pct)}
               <span className="text-base">%</span>
             </p>
           </div>
           {runnerUp && (
             <p className="text-[11px] text-white/60 mt-1.5">
               Next closest: <span className="font-semibold text-white/90">{runnerUp.name}</span> at{" "}
-              {(runnerUp.importance * 100).toFixed(1)}%
+              {formatNumber(runnerUp.importance * 100)}%
             </p>
           )}
         </div>
@@ -79,11 +79,11 @@ export default function FeatureImportanceCard({ data }) {
               margin={{ top: 5, right: 20, left: 5, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <XAxis tickFormatter={formatNumber} type="number" tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
               <Tooltip
                 contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                formatter={(value) => value.toFixed(4)}
+                formatter={(value) => formatNumber(value)}
               />
               <Bar dataKey="importance" radius={[0, 5, 5, 0]}>
                 {chartData.map((entry, idx) => (
@@ -102,7 +102,7 @@ export default function FeatureImportanceCard({ data }) {
           <p className="text-[11px] text-amber-800 leading-snug">
             <span className="font-bold">{FEATURE_LABELS[data.top_feature] || data.top_feature}</span> is
             the strongest driver of poverty incidence predictions, accounting for{" "}
-            <span className="font-bold">{data.top_feature_pct}%</span> of the model's decision-making —
+            <span className="font-bold">{formatNumber(data.top_feature_pct)}%</span> of the model's decision-making —
             far more influence than any other indicator.
           </p>
         </div>

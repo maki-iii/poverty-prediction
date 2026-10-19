@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -5,7 +6,6 @@ const INDICATORS = [
   { key: "avg_household_income", label: "Household Income", color: "#002366", unit: "" },
   { key: "avg_household_expenditure", label: "Household Expenditure", color: "#0044cc", unit: "" },
   { key: "avg_family_size", label: "Family Size", color: "#7c3aed", unit: "" },
-  { key: "inflation_rate", label: "Inflation Rate", color: "#dc2626", unit: "%" },
 ];
 
 export function MultiIndicatorCharts({ actuals }) {
@@ -24,10 +24,10 @@ export function MultiIndicatorCharts({ actuals }) {
           <ResponsiveContainer width="100%" height={100}>
             <LineChart data={sortedActuals} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
               <XAxis dataKey="year" hide />
-              <YAxis hide domain={["auto", "auto"]} />
+              <YAxis tickFormatter={formatNumber} hide domain={["auto", "auto"]} />
               <Tooltip
                 contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                formatter={(value) => `${value}${ind.unit}`}
+                formatter={(value) => `${formatNumber(value)}${ind.unit}`}
                 labelFormatter={(label) => `Year ${label}`}
               />
               <Line type="monotone" dataKey={ind.key} stroke={ind.color} strokeWidth={2} dot={false} />

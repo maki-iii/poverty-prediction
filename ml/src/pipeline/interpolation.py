@@ -65,6 +65,15 @@ def interpolate_actuals(region: str = None) -> dict:
     if df.empty:
         raise ValueError(f"No actuals found for region='{region}'.")
 
+    # The FIES view regenerates gaps from eligible anchors without overwriting
+    # old uploads, historical observations or independently saved forecasts.
+    from src.preprocess.history_mode import history_mode, fies_history
+    if history_mode() == "fies_only":
+        history = fies_history(df)
+        return {"region": region, "filled_years": [],
+                "created_years": history.loc[history.source.eq("interpolated"), "year"].tolist(),
+                "skipped_years": []}
+
     df = df.sort_values("year").reset_index(drop=True)
     for col in FEATURE_COLUMNS:
         df[col] = df[col].astype(float)

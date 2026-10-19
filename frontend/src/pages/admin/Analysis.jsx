@@ -1,12 +1,13 @@
 import { Map, Sparkles } from "lucide-react";
-import { useActuals, useLatestPredictions, useFeatureImportance } from "../../hooks/usePoverty";
+import { useTimeline, useLatestPredictions, useFeatureImportance } from "../../hooks/usePoverty";
 
 import Loader from "../../components/common/Loader";
 import FeatureImportanceCard from "../../components/admin/Analysis/FeatureImportanceCard";
 import PredictionsTrendCard from "../../components/admin/Analysis/PredictionsTrendCard";
 
 export default function Analysis() {
-  const { data: actuals, loading: actualsLoading } = useActuals();
+  const { data: timeline, loading: actualsLoading } = useTimeline();
+  const actuals = timeline?.actuals;
   const { data: predictions, loading: predictionsLoading, error: predictionsError } =
     useLatestPredictions();
   const { data: importanceData, loading: importanceLoading, error: importanceError } =

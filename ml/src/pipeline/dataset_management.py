@@ -2,7 +2,7 @@
 Business logic for the Dataset Management feature.
 
 Flow: upload (save file, minimal metadata) -> process (parse raw survey,
-compute 5 fields, combine with manual inputs) -> merge (write to actuals).
+compute three weighted means, combine with manual inputs) -> merge (write to actuals).
 """
 
 import uuid
@@ -23,6 +23,7 @@ from src.database.repository.actuals_repo import upsert_year
 from src.pipeline.raw_data_processor import process_raw_survey
 from src.pipeline import operations
 from src.pipeline import processing_status
+from src.pipeline.indicator_basis import INDICATOR_BASIS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # ml/src/pipeline/dataset_management.py -> ml/
 UPLOAD_DIR = PROJECT_ROOT / "data" / "uploads"
@@ -57,13 +58,15 @@ def get_datasets(status: str = None) -> list:
     df = list_datasets(status=status)
     if df.empty:
         return []
+    if "survey_type" in df.columns:
+        df = df.loc[df["survey_type"].fillna("").str.lower() != "apis"].copy()
     for col in ["uploaded_at", "merged_at"]:
         if col in df.columns:
             df[col] = df[col].apply(lambda x: x.isoformat() if pd.notnull(x) else None)
-    return df.to_dict(orient="records")
+    return df.astype(object).where(pd.notna(df), None).to_dict(orient="records")
 
 
-def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, poverty_incidence=None):
+def _process_dataset_background(dataset_id, survey_type, year, poverty_threshold, poverty_incidence):
     try:
         record = get_dataset(dataset_id)
         if record is None:
@@ -74,24 +77,25 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
                 f"only 'pending' or 'failed' datasets can be processed."
             )
 
-        # APIS surveys don't include poverty incidence data -- only FIES does.
-        if survey_type == "fies" and poverty_incidence is None:
-            raise ValueError("poverty_incidence is required when survey_type is 'fies'.")
+        if survey_type != "fies":
+            raise ValueError("Only FIES datasets are supported.")
 
         file_path = PROJECT_ROOT / record["stored_path"].replace("\\", "/")
         if not file_path.exists():
             mark_failed(dataset_id, "Stored file no longer exists on disk")
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        computed = process_raw_survey(file_path, survey_type, dataset_id=dataset_id)
+        computed = process_raw_survey(file_path, survey_type, poverty_threshold, dataset_id=dataset_id)
 
         processed_values = {
             "year": year,
             "avg_household_income": computed["avg_household_income"],
             "avg_household_expenditure": computed["avg_household_expenditure"],
             "avg_family_size": computed["avg_family_size"],
-            "inflation_rate": inflation_rate,
-            "poverty_incidence": poverty_incidence,  # None for APIS, required for FIES
+            "poverty_threshold": poverty_threshold,
+            "indicator_basis": INDICATOR_BASIS,
+            "row_count_used": computed["row_count_used"],
+            "poverty_incidence": poverty_incidence,
         }
 
         with operations.commit_section():
@@ -107,11 +111,14 @@ def _process_dataset_background(dataset_id, survey_type, year, inflation_rate, p
 
 @operations.serialize_start
 def start_processing(dataset_id: int, survey_type: str, year: int,
-                      inflation_rate: float, poverty_incidence: float = None):
+                      poverty_threshold: float, poverty_incidence: float):
     """
     Kicks off processing in a background thread. Returns immediately;
     poll processing_status.get_status(dataset_id) for progress.
     """
+    from src.api.schemas import ProcessDatasetRequest
+    ProcessDatasetRequest(survey_type=survey_type, year=year, poverty_threshold=poverty_threshold,
+                          poverty_incidence=poverty_incidence)
     if processing_status.is_running(dataset_id):
         raise ValueError(f"Dataset id={dataset_id} is already being processed.")
 
@@ -119,7 +126,7 @@ def start_processing(dataset_id: int, survey_type: str, year: int,
 
     operations.start_background(
         _process_dataset_background,
-        (dataset_id, survey_type, year, inflation_rate, poverty_incidence),
+        (dataset_id, survey_type, year, poverty_threshold, poverty_incidence),
     )
 
 
@@ -130,6 +137,8 @@ def merge_dataset(dataset_id: int) -> dict:
     record = get_dataset(dataset_id)
     if record is None:
         raise ValueError(f"Dataset id={dataset_id} not found")
+    if record.get("survey_type") != "fies" or record.get("indicator_basis") != INDICATOR_BASIS:
+        raise ValueError("Only FIES datasets processed with a poverty threshold can be merged. Upload and process the original file with its threshold.")
     if record["status"] != "processed":
         raise ValueError(
             f"Dataset id={dataset_id} has status '{record['status']}' -- "
@@ -143,7 +152,8 @@ def merge_dataset(dataset_id: int) -> dict:
             "avg_household_income": record["processed_avg_household_income"],
             "avg_household_expenditure": record["processed_avg_household_expenditure"],
             "avg_family_size": record["processed_avg_family_size"],
-            "inflation_rate": record["processed_inflation_rate"],
+            "poverty_threshold": record["processed_poverty_threshold"],
+            "indicator_basis": INDICATOR_BASIS,
             "poverty_incidence": record["processed_poverty_incidence"],
             "source": record["survey_type"].upper(),
         }

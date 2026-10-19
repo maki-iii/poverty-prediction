@@ -5,9 +5,9 @@ FastAPI handles serialization automatically.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ---------------------------------------------------------------------
@@ -20,7 +20,9 @@ class ActualIndicatorOut(BaseModel):
     avg_household_income: float
     avg_household_expenditure: float
     avg_family_size: float
-    inflation_rate: float
+    inflation_rate: Optional[float] = None
+    poverty_threshold: Optional[float] = None
+    indicator_basis: Optional[str] = None
     poverty_incidence: Optional[float] = None
     source: str
     created_at: Optional[datetime] = None
@@ -78,6 +80,9 @@ class PipelineRunResponse(BaseModel):
 
 
 class ModelComparisonOut(BaseModel):
+    data_history: Optional[str] = None
+    validation_mode: Optional[str] = None
+    evaluation_warning: Optional[str] = None
     validation_method: Optional[str] = None
     quality_warning: Optional[str] = None
     forecast_horizon_years: Optional[int] = None
@@ -115,6 +120,8 @@ class DatasetOut(BaseModel):
     processed_avg_family_size: Optional[float] = None
     processed_inflation_rate: Optional[float] = None
     processed_poverty_incidence: Optional[float] = None
+    processed_poverty_threshold: Optional[float] = None
+    indicator_basis: Optional[str] = None
 
     uploaded_at: Optional[str] = None
     merged_at: Optional[str] = None
@@ -137,10 +144,11 @@ class DeleteDatasetResponse(BaseModel):
     filename: str
 
 class ProcessDatasetRequest(BaseModel):
-    survey_type: str
-    year: int
-    inflation_rate: float
-    poverty_incidence: Optional[float] = None
+    model_config = ConfigDict(allow_inf_nan=False, extra="forbid")
+    survey_type: Literal["fies"] = "fies"
+    year: int = Field(ge=1900, le=2100)
+    poverty_threshold: float = Field(gt=0, le=9999999999.99, description="Annual poverty threshold in PHP per person")
+    poverty_incidence: float = Field(ge=0, le=100)
 
 class FeatureImportanceOut(BaseModel):
     model_used: str

@@ -5,6 +5,7 @@ Stored forecast inputs remain forecasts; they are never copied into actuals.
 """
 
 from src.pipeline.operations import checkpoint
+from src.pipeline.indicator_basis import INDICATOR_BASIS
 import uuid
 import warnings
 from pathlib import Path
@@ -117,7 +118,8 @@ def forecast_all_indicators() -> pd.DataFrame:
     forecast_years = [last_year + i for i in range(1, HORIZON + 1)]
     model_run_id = f"arima_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
 
-    results = {year: {"region": REGION, "year": year, "model_run_id": model_run_id} for year in forecast_years}
+    results = {year: {"region": REGION, "year": year, "model_run_id": model_run_id,
+                      "indicator_basis": INDICATOR_BASIS} for year in forecast_years}
     orders_used = {}
 
     for col in FEATURE_COLUMNS:

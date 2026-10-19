@@ -6,7 +6,6 @@ const STATUS_STYLES = {
   seed: "bg-slate-100 text-slate-600",
   actual: "bg-slate-100 text-slate-600",
   FIES: "bg-purple-100 text-purple-700",
-  APIS: "bg-cyan-100 text-cyan-700",
 };
 
 export default function StatusBadge({ status }) {

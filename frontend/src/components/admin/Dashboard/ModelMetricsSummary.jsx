@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { BadgeCheck, Trophy } from "lucide-react";
 import { useModelComparison } from "../../../hooks/usePoverty";
 import Loader from "../../common/Loader";
@@ -48,14 +49,14 @@ export default function ModelMetricsSummary() {
                   <span className="text-[8px] text-slate-500">
                     RMSE{" "}
                     <span className="font-bold text-slate-700">
-                      {metrics.rmse.toFixed(3)}
+                      {formatNumber(metrics.rmse)}
                     </span>
                   </span>
 
                   <span className="text-[8px] text-slate-500">
                     R²{" "}
                     <span className="font-bold text-slate-700">
-                      {metrics.r2 == null ? "N/A" : metrics.r2.toFixed(3)}
+                      {metrics.r2 == null ? "N/A" : formatNumber(metrics.r2)}
                     </span>
                   </span>
                 </div>

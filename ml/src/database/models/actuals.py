@@ -20,7 +20,9 @@ class ActualIndicators(Base):
     avg_household_income = Column(DECIMAL(12, 2), nullable=False)
     avg_household_expenditure = Column(DECIMAL(12, 2), nullable=False)
     avg_family_size = Column(DECIMAL(4, 2), nullable=False)
-    inflation_rate = Column(DECIMAL(5, 2), nullable=False)
+    inflation_rate = Column(DECIMAL(5, 2), nullable=True)  # retained legacy data
+    poverty_threshold = Column(DECIMAL(12, 2), nullable=True)
+    indicator_basis = Column(String(50), nullable=True)
 
     poverty_incidence = Column(DECIMAL(5, 2), nullable=True)  # target -- null for APIS-only years
 

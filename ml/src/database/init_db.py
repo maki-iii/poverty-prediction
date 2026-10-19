@@ -39,6 +39,8 @@ def create_tables():
     from src.database.models import actuals, forecasts, predictions, uploaded_datasets, training_runs  # noqa: F401
 
     Base.metadata.create_all(engine)
+    from src.database.migrate_threshold import migrate
+    migrate()
     print("[init_db] Tables created: actuals, forecasts, predictions")
 
 

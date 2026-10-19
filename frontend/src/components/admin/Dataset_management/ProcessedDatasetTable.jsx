@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import StatusBadge from "./StatusBadge";
 
 export default function ProcessedDatasetsTable({ datasets, onMerge, onDelete }) {
@@ -30,7 +31,7 @@ export default function ProcessedDatasetsTable({ datasets, onMerge, onDelete }) 
               Family
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Inflation
+              Poverty threshold
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
               Poverty
@@ -53,15 +54,15 @@ export default function ProcessedDatasetsTable({ datasets, onMerge, onDelete }) 
                 {d.region} / {d.processed_year}
               </td>
               <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                {d.processed_avg_household_income?.toLocaleString()}
+                {formatNumber(d.processed_avg_household_income, true)}
               </td>
               <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                {d.processed_avg_household_expenditure?.toLocaleString()}
+                {formatNumber(d.processed_avg_household_expenditure, true)}
               </td>
-              <td className="px-3 py-2 text-slate-600">{d.processed_avg_family_size}</td>
-              <td className="px-3 py-2 text-slate-600">{d.processed_inflation_rate}%</td>
+              <td className="px-3 py-2 text-slate-600">{formatNumber(d.processed_avg_family_size)}</td>
+              <td className="px-3 py-2 text-slate-600">{formatNumber(d.processed_poverty_threshold, true)}</td>
               <td className="px-3 py-2 text-slate-600">
-                {d.processed_poverty_incidence != null ? `${d.processed_poverty_incidence}%` : "—"}
+                {d.processed_poverty_incidence != null ? `${formatNumber(d.processed_poverty_incidence)}%` : "—"}
               </td>
               <td className="px-3 py-2">
                 <StatusBadge status={d.status} />

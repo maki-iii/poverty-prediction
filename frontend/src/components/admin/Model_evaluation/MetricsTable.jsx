@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { Trophy } from "lucide-react";
 
 export default function MetricsTable({ results, bestModel }) {
@@ -43,9 +44,9 @@ export default function MetricsTable({ results, bestModel }) {
                   {isBest && <Trophy className="w-3.5 h-3.5 text-emerald-600" />}
                   {name.replace("_", " ")}
                 </td>
-                <td className="px-3 py-2 text-slate-600">{metrics.rmse.toFixed(4)}</td>
-                <td className="px-3 py-2 text-slate-600">{metrics.mae.toFixed(4)}</td>
-                <td className="px-3 py-2 text-slate-600">{metrics.r2 == null ? "N/A" : metrics.r2.toFixed(4)}</td>
+                <td className="px-3 py-2 text-slate-600">{formatNumber(metrics.rmse)}</td>
+                <td className="px-3 py-2 text-slate-600">{formatNumber(metrics.mae)}</td>
+                <td className="px-3 py-2 text-slate-600">{metrics.r2 == null ? "N/A" : formatNumber(metrics.r2)}</td>
                 <td className="px-3 py-2">
                   {isBest ? (
                     <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">

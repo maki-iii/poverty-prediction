@@ -30,7 +30,7 @@ def _validate_common(df, required_columns):
     if missing:
         raise ValueError(f"Missing expected columns: {missing}")
     if df.empty:
-        raise ValueError("No eligible actual or interpolated history is available.")
+        raise ValueError("No eligible FIES history. Upload and process historical FIES files with each year's annual per-person poverty threshold, then merge them before training or forecasting.")
     if df.duplicated(["region", "year"]).any():
         raise ValueError("Duplicate (region, year) rows found.")
     return df.sort_values("year").reset_index(drop=True)
@@ -53,14 +53,23 @@ def get_forecast_history(region=None, include_forecasts=True):
     """
     region = region or REGION
     history = historical_rows(load_actuals(region))
+    history = _validate_features(history)
     anchor = latest_history_year(history)
     history = _validate_features(history.loc[history["year"] <= anchor])
+    eligible_history = history
     columns = ["region", "year", *FEATURE_COLUMNS, "source"]
     if "source" not in history:
         history["source"] = "actual"
     history = history[columns].copy()
     if include_forecasts:
-        retained = latest_by_year(get_forecasts(region=region), history)
+        from src.pipeline.indicator_basis import current_basis_rows
+        from src.preprocess.history_mode import CONFIG as HISTORY_CONFIG
+        saved = get_forecasts(region=region)
+        if HISTORY_CONFIG.get("require_poverty_threshold", False):
+            saved = current_basis_rows(saved)
+        # Keep provenance while resolving precedence; selecting feature columns
+        # above removes the basis tag needed by the FIES history filter.
+        retained = latest_by_year(saved, eligible_history)
         if not retained.empty:
             # Only fill historical gaps. Prior future forecasts cannot move the anchor.
             retained = retained.loc[retained["year"] <= anchor].copy()

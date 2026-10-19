@@ -15,6 +15,10 @@ def rows(years, **extra):
 
 
 class PipelineTests(unittest.TestCase):
+    def setUp(self):
+        from src.preprocess import history_mode
+        self.enterContext(patch.dict(history_mode.CONFIG, data_history="combined", require_poverty_threshold=False))
+
     def test_upload_2026_preserves_2024_2025_and_new_horizon(self):
         old = rows([2024, 2025, 2026], model_run_id="old", value=10)
         new = rows([2027, 2028, 2029], model_run_id="new", value=20)
@@ -35,7 +39,7 @@ class PipelineTests(unittest.TestCase):
     def test_apis_does_not_hide_poverty_prediction(self):
         estimates = rows([2024, 2025])
         actuals = rows([2024], source="APIS", poverty_incidence=None)
-        self.assertEqual(latest_by_year(estimates, actuals).year.tolist(), [2025])
+        self.assertEqual(latest_by_year(estimates, actuals).year.tolist(), [2024, 2025])
         self.assertEqual(latest_by_year(estimates, actuals, "poverty_incidence").year.tolist(), [2024, 2025])
 
     def test_interpolated_rows_train_both_models(self):

@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { buildTimeline } from "../../../utils/timeline.js";
 import { useState, useMemo } from "react";
 import {
@@ -16,7 +17,6 @@ const INDICATORS = [
   { key: "avg_household_income", label: "Household Income" },
   { key: "avg_household_expenditure", label: "Household Expenditure" },
   { key: "avg_family_size", label: "Family Size" },
-  { key: "inflation_rate", label: "Inflation Rate (%)" },
 ];
 
 export default function IndicatorTrendChart({ actuals, forecasts }) {
@@ -53,8 +53,8 @@ export default function IndicatorTrendChart({ actuals, forecasts }) {
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
-          <Tooltip
+          <YAxis tickFormatter={formatNumber} tick={{ fontSize: 11 }} />
+          <Tooltip formatter={formatNumber}
             contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />

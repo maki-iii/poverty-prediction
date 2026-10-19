@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { formatPrediction } from "../../../utils/formatPrediction";
 import {
   BarChart,
@@ -29,7 +30,7 @@ export default function PredictionsBarChart({ predictions }) {
         <BarChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} unit="%" />
+          <YAxis tickFormatter={formatNumber} tick={{ fontSize: 11 }} unit="%" />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
             formatter={(value) => `${formatPrediction(value)}%`}

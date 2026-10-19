@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 export default function ForecastResultTable({ forecasts }) {
   if (!forecasts || forecasts.length === 0) {
     return (
@@ -27,9 +28,6 @@ export default function ForecastResultTable({ forecasts }) {
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
               Family Size
             </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Inflation
-            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -38,13 +36,12 @@ export default function ForecastResultTable({ forecasts }) {
               <td className="px-3 py-2 text-slate-700 font-medium">{f.region}</td>
               <td className="px-3 py-2 text-slate-600">{f.year}</td>
               <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                {f.avg_household_income?.toLocaleString()}
+                {formatNumber(f.avg_household_income, true)}
               </td>
               <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                {f.avg_household_expenditure?.toLocaleString()}
+                {formatNumber(f.avg_household_expenditure, true)}
               </td>
-              <td className="px-3 py-2 text-slate-600">{f.avg_family_size}</td>
-              <td className="px-3 py-2 text-slate-600">{f.inflation_rate}%</td>
+              <td className="px-3 py-2 text-slate-600">{formatNumber(f.avg_family_size)}</td>
             </tr>
           ))}
         </tbody>

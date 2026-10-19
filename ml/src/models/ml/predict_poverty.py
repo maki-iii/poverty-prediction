@@ -23,7 +23,7 @@ import numpy as np
 import uuid
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # ml/src/models/ml/predict_poverty.py -> ml/
-SAVED_MODELS_DIR = PROJECT_ROOT / "saved_models" / "ml"
+from src.pipeline.indicator_basis import SAVED_MODELS_DIR, INDICATOR_BASIS
 
 with open(PROJECT_ROOT / "configs" / "config.yaml", "r") as f:
     CONFIG = yaml.safe_load(f)
@@ -93,6 +93,7 @@ def predict():
             "model_used": model_name,
             "input_source": row["input_source"],
             "model_run_id": prediction_run_id,
+            "indicator_basis": INDICATOR_BASIS,
         })
         print(f"[predict_poverty] {year}: {stored_value:.2f}% "
               f"(model={model_name}, input_source={row['input_source']})")

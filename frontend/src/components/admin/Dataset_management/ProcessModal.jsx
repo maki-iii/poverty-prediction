@@ -3,9 +3,9 @@ import { X, FileSpreadsheet } from "lucide-react";
 import Loader from "../../common/Loader";
 
 export default function ProcessModal({ dataset, onClose, onSubmit, processing }) {
-  const [surveyType, setSurveyType] = useState("apis");
+  const surveyType = "fies";
   const [year, setYear] = useState("");
-  const [inflationRate, setInflationRate] = useState("");
+  const [povertyThreshold, setPovertyThreshold] = useState("");
   const [povertyIncidence, setPovertyIncidence] = useState("");
   const [error, setError] = useState("");
 
@@ -15,8 +15,8 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
     e.preventDefault();
     setError("");
     
-    if (!year || inflationRate === "") {
-      setError("Year and inflation rate are required.");
+    if (!year || povertyThreshold === "" || !Number.isFinite(Number(povertyThreshold)) || Number(povertyThreshold) <= 0) {
+      setError("Year and a positive annual per-person poverty threshold are required.");
       return;
     }
     if (surveyType === "fies" && povertyIncidence === "") {
@@ -28,7 +28,7 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
         await onSubmit(dataset.id, {
         surveyType,
         year: Number(year),
-        inflationRate: Number(inflationRate),
+        povertyThreshold: Number(povertyThreshold),
         povertyIncidence: surveyType === "fies" ? Number(povertyIncidence) : null,
       });
       onClose();
@@ -80,10 +80,8 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
               <label className={labelClass}>Survey Type</label>
               <select
                 value={surveyType}
-                onChange={(e) => setSurveyType(e.target.value)}
                 className={inputClass}
               >
-                <option value="apis">APIS</option>
                 <option value="fies">FIES</option>
               </select>
             </div>
@@ -100,18 +98,21 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
                 />
               </div>
               <div>
-                <label className={labelClass}>Inflation (%)</label>
+                <label className={labelClass}>Poverty Threshold (PHP)</label>
                 <input
                   type="number"
                   step="0.01"
-                  value={inflationRate}
-                  onChange={(e) => setInflationRate(e.target.value)}
-                  placeholder="9.2"
+                  min="0.01"
+                  required
+                  value={povertyThreshold}
+                  onChange={(e) => setPovertyThreshold(e.target.value)}
+                  placeholder="e.g. 37711"
                   className={inputClass}
                 />
               </div>
             </div>
             
+            <p className="text-xs text-slate-500">Use the NCR threshold in pesos per person per year. Income, expenditure, and family size are weighted averages for families below it.</p>
             {surveyType === "fies" && (
               <div>
                 <label className={labelClass}>
@@ -121,6 +122,9 @@ export default function ProcessModal({ dataset, onClose, onSubmit, processing })
                   type="number"
                   step="0.01"
                   value={povertyIncidence}
+                  min="0"
+                  max="100"
+                  required
                   onChange={(e) => setPovertyIncidence(e.target.value)}
                   placeholder="e.g. 20.65"
                   className={inputClass}

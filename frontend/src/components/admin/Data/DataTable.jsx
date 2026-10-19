@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import StatusBadge from "../../admin/Dataset_management/StatusBadge";
 
 export default function DataTable({ actuals, onDelete }) {
@@ -30,9 +31,6 @@ export default function DataTable({ actuals, onDelete }) {
               Family size
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
-              Inflation rate
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
               Poverty incidence
             </th>
             <th className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider">
@@ -49,15 +47,14 @@ export default function DataTable({ actuals, onDelete }) {
               <td className="px-3 py-2 text-slate-700 font-medium">{row.region}</td>
               <td className="px-3 py-2 text-slate-600">{row.year}</td>
               <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                {row.avg_household_income?.toLocaleString()}
+                {formatNumber(row.avg_household_income, true)}
               </td>
               <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
-                {row.avg_household_expenditure?.toLocaleString()}
+                {formatNumber(row.avg_household_expenditure, true)}
               </td>
-              <td className="px-3 py-2 text-slate-600">{row.avg_family_size}</td>
-              <td className="px-3 py-2 text-slate-600">{row.inflation_rate}%</td>
+              <td className="px-3 py-2 text-slate-600">{formatNumber(row.avg_family_size)}</td>
               <td className="px-3 py-2 text-slate-600 font-medium">
-                {row.poverty_incidence != null ? `${row.poverty_incidence}%` : "—"}
+                {row.poverty_incidence != null ? `${formatNumber(row.poverty_incidence)}%` : "—"}
               </td>
               <td className="px-3 py-2">
                 <StatusBadge status={row.source} />

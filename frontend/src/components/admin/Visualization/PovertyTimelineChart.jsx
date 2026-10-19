@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { buildTimeline } from "../../../utils/timeline.js";
 import { useMemo } from "react";
 import {
@@ -34,10 +35,10 @@ export default function PovertyTimelineChart({ actuals, predictions, compact = f
         <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} unit="%" />
+          <YAxis tickFormatter={formatNumber} tick={{ fontSize: 11 }} unit="%" />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}
-            formatter={(value) => value != null ? `${value}%` : "N/A"}
+            formatter={(value) => value != null ? `${formatNumber(value)}%` : "N/A"}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
 

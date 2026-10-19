@@ -95,7 +95,7 @@ class CancellationTests(unittest.TestCase):
              patch.object(datasets, 'process_raw_survey', side_effect=operations.OperationCancelled), \
              patch.object(datasets, 'mark_processed') as save, \
              patch.object(datasets, 'mark_failed') as fail:
-            datasets._process_dataset_background(999999, 'apis', 2023, 2.0)
+            datasets._process_dataset_background(999999, 'fies', 2023, 37711, 2.0)
             self.assertEqual(processing_status.get_status(999999)['status'], 'cancelled')
             save.assert_not_called()
             fail.assert_not_called()

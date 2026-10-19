@@ -1,3 +1,4 @@
+import { formatNumber } from "../../utils/formatNumber.js";
 import { BadgeCheck } from "lucide-react";
 import { useModelComparison } from "../../hooks/usePoverty";
 
@@ -44,7 +45,7 @@ export default function ModelEvaluation() {
           {data?.results?.[data.best_model]?.persistence_baseline && (
             <p className="text-sm text-slate-600">
               Evaluated on {data.results[data.best_model].test_points} observed poverty targets.
-              Last-observed-value baseline RMSE: {data.results[data.best_model].persistence_baseline.rmse.toFixed(4)}.
+              Last-observed-value baseline RMSE: {formatNumber(data.results[data.best_model].persistence_baseline.rmse)}.
               Small evaluation samples can produce unstable R² scores.
             </p>
           )}

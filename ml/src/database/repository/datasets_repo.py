@@ -117,6 +117,11 @@ def mark_processed(dataset_id: int, survey_type: str, region: str, processed_val
         record.processed_avg_family_size = processed_values.get("avg_family_size")
         record.processed_inflation_rate = processed_values.get("inflation_rate")
         record.processed_poverty_incidence = processed_values.get("poverty_incidence")
+        record.processed_poverty_threshold = processed_values["poverty_threshold"]
+        record.indicator_basis = processed_values["indicator_basis"]
+        record.row_count = processed_values["row_count_used"]
+        record.year_range = str(record.processed_year)
+        record.error_message = None
 
         session.commit()
     except Exception:

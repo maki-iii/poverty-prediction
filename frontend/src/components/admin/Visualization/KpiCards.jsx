@@ -1,3 +1,4 @@
+import { formatNumber } from "../../../utils/formatNumber.js";
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpToLine, Target } from "lucide-react";
 
@@ -42,28 +43,28 @@ export default function KpiCards({ actuals, predictions }) {
   const cards = [
     {
       label: `Latest (${stats.latestYear})`,
-      value: `${stats.latestValue}%`,
+      value: `${formatNumber(stats.latestValue)}%`,
       icon: Target,
       color: "from-[#002366] to-[#003a99]",
     },
     {
       label: `Historical High (${stats.highestYear})`,
-      value: `${stats.highest}%`,
+      value: `${formatNumber(stats.highest)}%`,
       icon: ArrowUpToLine,
       color: "from-red-500 to-red-600",
     },
     {
       label: `Historical Low (${stats.lowestYear})`,
-      value: `${stats.lowest}%`,
+      value: `${formatNumber(stats.lowest)}%`,
       icon: ArrowDownToLine,
       color: "from-emerald-500 to-emerald-600",
     },
     stats.lastPredictionValue != null && {
       label: `Projected (${stats.lastPredictionYear})`,
-      value: `${stats.lastPredictionValue}%`,
+      value: `${formatNumber(stats.lastPredictionValue)}%`,
       subtext:
         stats.projectedChange != null
-          ? `${stats.projectedChange > 0 ? "+" : ""}${stats.projectedChange.toFixed(2)} pts vs ${stats.latestYear}`
+          ? `${stats.projectedChange > 0 ? "+" : ""}${formatNumber(stats.projectedChange)} pts vs ${stats.latestYear}`
           : null,
       icon: stats.projectedChange > 0 ? TrendingUp : TrendingDown,
       color: stats.projectedChange > 0 ? "from-orange-500 to-orange-600" : "from-teal-500 to-teal-600",

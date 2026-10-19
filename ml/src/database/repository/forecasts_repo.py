@@ -59,7 +59,8 @@ def get_current_forecasts(region: str = None, include_history: bool = False) -> 
     from src.database.repository.actuals_repo import get_actuals
     from src.pipeline.year_selection import latest_by_year, select_window
     actuals = get_actuals(region=region)
-    estimates = latest_by_year(get_forecasts(region=region), actuals)
+    from src.pipeline.indicator_basis import current_basis_rows
+    estimates = latest_by_year(current_basis_rows(get_forecasts(region=region)), actuals)
     return select_window(estimates, actuals, include_history=include_history)
 
 

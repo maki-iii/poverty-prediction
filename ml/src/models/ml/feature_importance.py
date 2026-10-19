@@ -18,7 +18,7 @@ from src.database.repository.forecasts_repo import get_forecasts, get_latest_run
 from src.preprocess.load_clean import get_training_data
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # ml/src/models/ml/feature_importance.py -> ml/
-SAVED_MODELS_DIR = PROJECT_ROOT / "saved_models" / "ml"
+from src.pipeline.indicator_basis import SAVED_MODELS_DIR
 
 with open(PROJECT_ROOT / "configs" / "config.yaml", "r") as f:
     CONFIG = yaml.safe_load(f)

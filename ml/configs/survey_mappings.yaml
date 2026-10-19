@@ -1,16 +1,8 @@
-apis:
-  income_col: [TOINC_01, TOTINC, INC, TOTIN, TOINC, PUFTOTINC]
-  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOEXP, PUFTOTEXP, T_TOTEX, TOTEX]
-  family_size_col: [FSIZE_01, FSIZE1, FSIZE2, FSIZE, FAMSIZE, PUFSIZE]
-
-  region_col: [REG, REGION, REGN, PREG, REGO]
-  region_code_map:
-    13: NCR
-
 fies:
   income_col: [TOINC_01, TOTINC, INC, TOTIN, TOINC]
-  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOTEX, TTOTEX]
+  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOTEX, TTOTEX, TOEXP]
   family_size_col: [FSIZE_01, FSIZE, FAMSIZE]
+  weight_col: [RFACT, RFACT_R, FWGT, HHWGT, WEIGHT, WGT, FWEIGHT]
 
   region_col: [W_REGN, REG, REGION, REGN]
   region_code_map:

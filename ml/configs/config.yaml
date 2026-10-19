@@ -9,13 +9,16 @@
 
 region: "NCR"
 
+# Active pipeline uses threshold-filtered FIES observations only.
+data_history: fies_only
+require_poverty_threshold: true
+
 target_column: "poverty_incidence"
 
 feature_columns:
   - avg_household_income
   - avg_household_expenditure
   - avg_family_size
-  - inflation_rate
 
 # ---------------------------------------------------------------------
 # ARIMA settings
@@ -34,6 +37,7 @@ arima:
 #   3. adding an entry here
 # ---------------------------------------------------------------------
 ml:
+  validation_method: kfold  # experimental; use time_series to restore chronological validation
   active_models:
     - xgboost
     - ridge
@@ -41,7 +45,7 @@ ml:
 
   min_train_size: 5      # minimum observed targets before a validation origin
   random_state: 42
-  cv_folds: 5             # maximum recent, non-overlapping calendar validation windows
+  cv_folds: 5             # K-fold splits, or maximum chronological windows
 
   # Small-data regularization, selected only inside each training window.
   tuning:
