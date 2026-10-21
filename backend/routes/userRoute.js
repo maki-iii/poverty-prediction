@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const UserController = require("../controllers/userController");
 const verifyToken = require("../middlewares/authMiddleware");
-const verifyAdmin = require("../middlewares/adminMiddleware");
+const verifyAccountAccess = require("../middlewares/accountAccessMiddleware");
 const verifySuperAdmin = require("../middlewares/superAdminMiddleware");
 
 // Public routes
@@ -25,9 +25,9 @@ router.get("/me", (req, res) => {
 });
 
 // Admin and user
-router.put("/:id", UserController.updateUser);
-router.get("/:id", UserController.getProfile);
-router.put("/:id/change-password", UserController.changePassword);
+router.put("/:id", verifyAccountAccess, UserController.updateUser);
+router.get("/:id", verifyAccountAccess, UserController.getProfile);
+router.put("/:id/change-password", verifyAccountAccess, UserController.changePassword);
 
 // Admin-only routes
 router.get("/", verifySuperAdmin, UserController.getAllUsers);

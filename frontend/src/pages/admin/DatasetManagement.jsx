@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Database, FileClock, CheckCircle2 } from "lucide-react";
 import { useDatasets, useDatasetActions } from "../../hooks/useDatasets";
 import useProcessingProgress from "../../hooks/useProcessingProgress";
@@ -16,13 +16,20 @@ import ProcessedDatasetsTable from "../../components/admin/Dataset_management/Pr
 import UploadProgressBar from "../../components/admin/Dataset_management/UploadProgressBar";
 import ProcessingProgressBar from "../../components/admin/Dataset_management/ProcessingProgressBar";
 import { useToast } from "../../context/ToastContext";
+import { uploadDatasetQueue } from "../../services/datasetUploadQueue";
+import { mergeDatasetQueue, validateMergeSelection } from "../../services/datasetMergeQueue";
 
 export default function DatasetManagement() {
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResults, setUploadResults] = useState([]);
+  const [selectedMergeIds, setSelectedMergeIds] = useState([]);
+  const [merging, setMerging] = useState(false);
+  const [mergeResults, setMergeResults] = useState([]);
+  const actionInProgress = useRef(false);
   const toast = useToast();
 
   const {
@@ -71,6 +78,22 @@ export default function DatasetManagement() {
     () => filterDatasets(processedDatasets),
     [processedDatasets, search, dateRange]
   );
+  const selectedMergeDatasets = filteredProcessed.filter((dataset) => selectedMergeIds.includes(dataset.id));
+  const selectMergeDatasets = (datasets, checked) => {
+    const ids = datasets.map((dataset) => dataset.id);
+    setSelectedMergeIds((previous) => checked
+      ? [...new Set([...previous, ...ids])]
+      : previous.filter((id) => !ids.includes(id)));
+  };
+  const confirmBulkMerge = () => {
+    if (!selectedMergeDatasets.length || merging) return;
+    try {
+      validateMergeSelection(selectedMergeDatasets);
+      setConfirmAction({ type: "bulkMerge", datasets: [...selectedMergeDatasets] });
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   // --- Pagination (one per table, since they're independent lists) ---
   const {
@@ -109,17 +132,19 @@ export default function DatasetManagement() {
   }, [processStatus?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Action handlers ---
-  const handleUpload = async (file) => {
-    setUploadProgress(0);
+  const handleUpload = async (selection) => {
+    const files = Array.isArray(selection) ? selection : [selection];
+    setUploading(true);
     try {
-      await uploadDataset(file, (percent) => setUploadProgress(percent));
-      toast.success(`"${file.name}" uploaded successfully`);
-      refetchPending();
-    } catch (err) {
-      toast.error(err.message || "Failed to upload dataset");
-      throw err;
+      const results = await uploadDatasetQueue(files, uploadDataset, setUploadResults);
+      const uploaded = results.filter((entry) => entry.status === "uploaded").length;
+      if (uploaded) toast.success(`${uploaded} of ${files.length} dataset(s) uploaded successfully`);
+      if (results.some((entry) => entry.status !== "uploaded")) {
+        toast.info("Some files were not uploaded or could not be confirmed. See the upload results.");
+      }
     } finally {
-      setUploadProgress(null);
+      setUploading(false);
+      refetchPending();
     }
   };
 
@@ -134,11 +159,21 @@ export default function DatasetManagement() {
   };
 
   const handleConfirmedAction = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction || actionInProgress.current) return;
+    actionInProgress.current = true;
     const { type, dataset } = confirmAction;
 
     try {
-      if (type === "delete") {
+      if (type === "bulkMerge") {
+        setConfirmAction(null);
+        setMerging(true);
+        const results = await mergeDatasetQueue(confirmAction.datasets, mergeDataset, setMergeResults);
+        const merged = results.filter((entry) => entry.status === "merged");
+        if (merged.length) toast.success(`${merged.length} of ${results.length} datasets merged into actuals`);
+        if (merged.length !== results.length) toast.info("Some datasets were not merged or could not be confirmed. See the merge results.");
+        // Clear the batch selection so a retry requires reviewing current data.
+        setSelectedMergeIds([]);
+      } else if (type === "delete") {
         await deleteDataset(dataset.id);
         toast.success(`"${dataset.original_filename}" deleted`);
         refetchPending();
@@ -151,6 +186,12 @@ export default function DatasetManagement() {
     } catch (err) {
       toast.error(err.message || `Failed to ${type} dataset`);
     } finally {
+      if (type === "bulkMerge") {
+        setMerging(false);
+        refetchProcessed();
+        refetchPending();
+      }
+      actionInProgress.current = false;
       setConfirmAction(null);
     }
   };
@@ -159,6 +200,18 @@ export default function DatasetManagement() {
     if (!confirmAction) return null;
     const { type, dataset } = confirmAction;
 
+    if (type === "bulkMerge") {
+      return {
+        title: `Merge ${confirmAction.datasets.length} Datasets?`,
+        subtitle: "Review the selected datasets before adding them to actuals.",
+        warning: "Existing actual values for the same region and year will be updated. Each dataset is merged separately; completed merges are kept if you stop. Re-run forecasting and training afterward.",
+        confirmLabel: "Merge Selected",
+        cancelLabel: "Cancel",
+        fields: confirmAction.datasets.map((item) => ({
+          key: String(item.id), label: `${item.region} / ${item.processed_year}`, value: item.original_filename,
+        })),
+      };
+    }
     if (type === "delete") {
       return {
         title: "Delete Dataset?",
@@ -195,22 +248,62 @@ export default function DatasetManagement() {
             <p className="text-xs text-slate-500">Upload, process, and merge survey data</p>
           </div>
         </div>
-        <UploadButton onUpload={handleUpload} uploading={uploadProgress !== null} />
+        <div className="flex flex-wrap gap-2">
+          <UploadButton onUpload={handleUpload} uploading={uploading} />
+          <UploadButton onUpload={handleUpload} uploading={uploading} multiple />
+        </div>
       </div>
 
       {/* Progress bars */}
-      {uploadProgress !== null && <UploadProgressBar progress={uploadProgress} />}
+      {uploadResults.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 space-y-3" aria-live="polite">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-700">
+              {uploading ? "Uploading datasets" : "Upload results"} — {uploadResults.filter((entry) => entry.status === "uploaded").length} of {uploadResults.length} uploaded
+            </p>
+            {!uploading && <button type="button" className="text-xs text-slate-500 hover:text-[#002366]" onClick={() => setUploadResults([])}>Dismiss</button>}
+          </div>
+          {uploadResults.map((entry, index) => entry.status === "uploading" && (
+            <UploadProgressBar key={index} progress={entry.progress} label={`File ${index + 1} of ${uploadResults.length}: ${entry.name}${entry.progress === 100 ? " — Saving..." : ""}`} />
+          ))}
+          <ul className="max-h-48 overflow-y-auto space-y-1 text-xs">
+            {uploadResults.map((entry, index) => (
+              <li key={index} className={`break-all ${["failed", "unconfirmed"].includes(entry.status) ? "text-red-600" : "text-slate-600"}`}>
+                {entry.name} — {entry.status}{entry.message ? `: ${entry.message}` : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-slate-500">Process each uploaded dataset with its own year, poverty threshold, and poverty incidence.</p>
+        </div>
+      )}
       {processStatus && processStatus.status !== "idle" && (
         <ProcessingProgressBar status={processStatus} />
+      )}
+      {mergeResults.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 space-y-3" aria-live="polite">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-700">
+              {merging ? "Merging datasets" : "Merge results"} — {mergeResults.filter((entry) => entry.status === "merged").length} of {mergeResults.length} merged
+            </p>
+            {!merging && <button type="button" className="text-xs text-slate-500 hover:text-[#002366]" onClick={() => setMergeResults([])}>Dismiss</button>}
+          </div>
+          <ul className="max-h-48 overflow-y-auto space-y-1 text-xs">
+            {mergeResults.map((entry) => (
+              <li key={entry.id} className={`break-all ${["failed", "unconfirmed"].includes(entry.status) ? "text-red-600" : "text-slate-600"}`}>
+                {entry.name} ({entry.region} / {entry.year}) — {entry.status}{entry.message ? `: ${entry.message}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-4 bg-white border border-slate-200 rounded-xl p-4">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search by filename..." />
+        <SearchBar value={search} onChange={(value) => { setSearch(value); setSelectedMergeIds([]); }} placeholder="Search by filename..." />
         <DateRangeFilter
           startDate={dateRange.startDate}
           endDate={dateRange.endDate}
-          onChange={setDateRange}
+          onChange={(value) => { setDateRange(value); setSelectedMergeIds([]); }}
         />
       </div>
 
@@ -260,6 +353,21 @@ export default function DatasetManagement() {
           </h2>
           <span className="text-xs text-slate-400">({filteredProcessed.length})</span>
         </div>
+        {filteredProcessed.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 mb-3 text-xs">
+            <button type="button" disabled={merging || running || processedLoading || !!processedError}
+              onClick={() => selectMergeDatasets(filteredProcessed, true)}
+              className="font-semibold text-[#002366] disabled:opacity-50">Select all filtered ({filteredProcessed.length})</button>
+            <button type="button" disabled={merging} onClick={() => setSelectedMergeIds([])}
+              className="text-slate-500 disabled:opacity-50">Clear selection</button>
+            <span className="text-slate-500">{selectedMergeDatasets.length} selected</span>
+            <button type="button" onClick={confirmBulkMerge}
+              disabled={!selectedMergeDatasets.length || merging || running || processedLoading || !!processedError}
+              className="ml-auto px-3 py-2 font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {merging ? "Merging..." : "Merge Selected"}
+            </button>
+          </div>
+        )}
         {processedLoading ? (
           <div className="flex justify-center py-6">
             <Loader />
@@ -270,6 +378,10 @@ export default function DatasetManagement() {
           <>
             <ProcessedDatasetsTable
               datasets={paginatedProcessed}
+              selectedIds={selectedMergeIds}
+              onSelect={(id, checked) => selectMergeDatasets([{ id }], checked)}
+              onSelectPage={selectMergeDatasets}
+              busy={merging || running}
               onMerge={(id) =>
                 setConfirmAction({
                   type: "merge",
@@ -310,6 +422,7 @@ export default function DatasetManagement() {
           onConfirm={handleConfirmedAction}
           onCancel={() => setConfirmAction(null)}
           {...confirmModalConfig}
+          busy={running}
         />
       )}
     </div>

@@ -9,6 +9,7 @@ const axiosInstance = axios.create({
   baseURL: envConfig.apiBaseUrl,
   timeout: 60000, // 15s -- pipeline trigger calls (train/forecast) can take a few seconds
   withCredentials: true, // sends cookies (e.g. your JWT auth cookie) with requests
+  headers: { "ngrok-skip-browser-warning": "1" },
 });
 
 installOperationTracking(axiosInstance);
@@ -19,7 +20,7 @@ axiosInstance.interceptors.response.use(
   (error) => {
     const message =
       error.response?.data?.message || error.message || "Something went wrong";
-    return Promise.reject(new Error(message));
+    return Promise.reject(new Error(message, { cause: error }));
   }
 );
 

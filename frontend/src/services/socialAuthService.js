@@ -16,12 +16,11 @@ async function handleSocialLogin(provider) {
     const response = await axios.post(
       "/api/users/social-login",
       {
-        name: user.displayName,
-        email: user.email,
-        uid: user.uid,
+        idToken: await user.getIdToken(),
       },
       {
         withCredentials: true,
+        headers: { "ngrok-skip-browser-warning": "1" },
       }
     );
 
@@ -74,7 +73,7 @@ async function handleSocialLogin(provider) {
 
       default:
         console.error(err);
-        throw new Error(err.message || "Social login failed.");
+        throw new Error(err.response?.data?.message || err.message || "Social login failed.");
     }
   }
 }
@@ -91,19 +90,18 @@ export async function handleRedirectResult() {
     const response = await axios.post(
       "/api/users/social-login",
       {
-        name: user.displayName,
-        email: user.email,
-        uid: user.uid,
+        idToken: await user.getIdToken(),
       },
       {
         withCredentials: true,
+        headers: { "ngrok-skip-browser-warning": "1" },
       }
     );
 
     return response.data;
   } catch (err) {
     console.error(err);
-    throw new Error(err.message || "Redirect login failed.");
+    throw new Error(err.response?.data?.message || err.message || "Redirect login failed.");
   }
 }
 

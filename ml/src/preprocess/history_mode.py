@@ -33,7 +33,7 @@ def fies_history(actuals):
         if anchors.empty:
             return pd.DataFrame(columns=["region", "year", *columns, "source", "indicator_basis"])
     if anchors.empty:
-        raise ValueError("No FIES observations are available for the FIES-only experiment.")
+        raise ValueError("No FIES observations are available for the FIES-only pipeline.")
     if anchors.duplicated(["region", "year"]).any():
         raise ValueError("Duplicate FIES region/year records.")
     parts = []

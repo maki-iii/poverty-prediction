@@ -1,4 +1,7 @@
-# K-fold trial
+# Selected K-fold validation
+
+K-fold was adopted as the default on 2026-10-19. This filename is retained for
+existing links; the configuration is no longer a temporary trial.
 
 `configs/config.yaml` currently selects `ml.validation_method: kfold`.
 This uses five shuffled folds with seed 42 and nested tuning. Each eligible
@@ -9,9 +12,9 @@ comparable to chronological ARIMA-plus-ML forecasting scores.
 
 Future indicator forecasting and poverty prediction still use exactly three years.
 
-To restore the original evaluation, set `ml.validation_method: time_series`.
-Then rebuild the Docker ML service and train again. Rebuild the frontend too when
-deploying this trial for the first time so its evaluation labels are displayed:
+Chronological evaluation remains available for an explicitly requested comparison
+by setting `ml.validation_method: time_series`. The selected default is K-fold.
+After an intentional configuration change, rebuild and retrain:
 
 ```powershell
 docker compose --env-file .env.docker up -d --build ml frontend

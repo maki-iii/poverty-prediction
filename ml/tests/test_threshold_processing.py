@@ -68,6 +68,46 @@ class ThresholdProcessingTests(unittest.TestCase):
         self.data.to_excel(path, index=False)
         self.assertEqual(process_raw_survey(path, "fies", 10000)["row_count_used"], 2)
 
+    def test_historical_rfadj_weights_in_csv_and_excel(self):
+        self.data = self.data.rename(columns={"REGION": "REGN", "RFACT": "RFADJ"})
+        for suffix in [".csv", ".xlsx"]:
+            with self.subTest(suffix=suffix):
+                path = Path(self.tmp) / f"fies1991{suffix}"
+                if suffix == ".csv":
+                    self.data.to_csv(path, index=False)
+                else:
+                    self.data.to_excel(path, index=False)
+                result = process_raw_survey(path, "fies", 10000)
+                self.assertEqual(result["region"], "NCR")
+                self.assertEqual(result["row_count_used"], 2)
+                # Unequal weights distinguish weighted means from plain means.
+                self.assertAlmostEqual(result["avg_household_income"], 15000)
+                self.assertAlmostEqual(result["avg_household_expenditure"], 40000 / 3)
+                self.assertAlmostEqual(result["avg_family_size"], 3)
+
+    def test_invalid_rfadj_weights_are_rejected(self):
+        self.data = self.data.rename(columns={"RFACT": "RFADJ"})
+        self.data["RFADJ"] = self.data["RFADJ"].astype(object)
+        for value in [0, -1, "invalid", float("nan"), float("inf")]:
+            with self.subTest(value=value):
+                self.data.loc[0, "RFADJ"] = value
+                with self.assertRaisesRegex(ValueError, "invalid.*survey weight"):
+                    self.process()
+
+    def test_existing_weight_alias_priority_is_preserved(self):
+        self.data["RFADJ"] = 1
+        self.assertAlmostEqual(self.process()["avg_household_income"], 15000)
+
+    def test_fies_2000_total_expenditure_alias(self):
+        self.data = self.data.rename(columns={"REGION": "REGN", "TOTIN": "TOINC", "TOTEX": "TOEXP"})
+        # Other disbursements and expenditure categories are not the total.
+        self.data["TOTDIS"] = 999999
+        self.data["OTEXP"] = 999
+        result = self.process()
+        self.assertEqual(result["row_count_used"], 2)
+        self.assertAlmostEqual(result["avg_household_income"], 15000)
+        self.assertAlmostEqual(result["avg_household_expenditure"], 40000 / 3)
+
     def test_request_rejects_apis_missing_threshold_and_nonfinite_values(self):
         valid = dict(survey_type="fies", year=2023, poverty_threshold=37711, poverty_incidence=1.1)
         self.assertEqual(ProcessDatasetRequest(**valid).poverty_threshold, 37711)

@@ -1,5 +1,9 @@
 # Reversible FIES-only experiment
 
+Historical reference only: the threshold-based FIES workflow was adopted as the
+default on 2026-10-19. The experiment and switch-back notes below describe the
+earlier implementation, not the current operating setup.
+
 This document describes the earlier experiment. The active workflow is now
 [threshold-based FIES processing](THRESHOLD_FIES_PIPELINE.md). Its three-input
 models cannot be restored by changing only `data_history`; the legacy code,

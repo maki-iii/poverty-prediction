@@ -93,7 +93,7 @@ def process_raw_survey(file_path: Path, survey_type: str, poverty_threshold: flo
     if dataset_id is not None:
         processing_status.update(dataset_id, "computing_income", 70, "Computing income & expenditure...")
 
-    # Classify using annual income PER PERSON, not total family income.
+    # Compare annual total family income with a threshold for that family's size.
     income = _clean_numeric(df_filtered[income_col])
     expenditure = _clean_numeric(df_filtered[expenditure_col])
     family_size = _clean_numeric(df_filtered[family_size_col])
@@ -102,7 +102,8 @@ def process_raw_survey(file_path: Path, survey_type: str, poverty_threshold: flo
              & np.isfinite(weights) & (family_size > 0) & (weights > 0) & (expenditure >= 0))
     if not valid.all():
         raise ValueError(f"{int((~valid).sum())} NCR rows have invalid income, expenditure, family size, or survey weight. Correct them before processing.")
-    poor = income / family_size < poverty_threshold
+    family_income_threshold = float(poverty_threshold) * family_size
+    poor = income < family_income_threshold
     if not poor.any():
         raise ValueError("No NCR families are below this annual per-person poverty threshold. Check its year and units.")
     poor_weights = weights[poor]

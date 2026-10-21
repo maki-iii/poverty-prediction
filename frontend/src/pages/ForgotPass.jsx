@@ -10,6 +10,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
   const [step, setStep]               = useState(STEPS.EMAIL);
   const [email, setEmail]             = useState("");
   const [otp, setOtp]                 = useState("");
+  const [resetToken, setResetToken]   = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [alert, setAlert]             = useState(null);
@@ -21,6 +22,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
     setStep(STEPS.EMAIL);
     setEmail("");
     setOtp("");
+    setResetToken("");
     setNewPassword("");
     setShowPassword(false);
     setAlert(null);
@@ -41,6 +43,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
     try {
       setLoading(true);
       await sendOTP(email);
+      setResetToken("");
       setAlert({ type: "success", message: "OTP sent to your email." });
       setStep(STEPS.OTP);
     } catch (err) {
@@ -62,7 +65,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
     }
     try {
       setLoading(true);
-      await verifyOTP(email, otp);
+      const { data } = await verifyOTP(email, otp);
+      setResetToken(data.resetToken);
       setAlert({ type: "success", message: "OTP verified!" });
       setStep(STEPS.PASSWORD);
     } catch (err) {
@@ -84,7 +88,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
     }
     try {
       setLoading(true);
-      await resetPassword(email, newPassword);
+      await resetPassword(email, newPassword, resetToken);
+      setResetToken("");
       setAlert({ type: "success", message: "Password reset successfully!" });
       setTimeout(() => handleClose(), 1500);
     } catch (err) {
@@ -92,6 +97,11 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
         type: "error",
         message: err.response?.data?.message || "Failed to reset password.",
       });
+      if (err.response?.data?.code === "RESET_AUTH_REQUIRED") {
+        setResetToken("");
+        setOtp("");
+        setStep(STEPS.EMAIL);
+      }
     } finally {
       setLoading(false);
     }

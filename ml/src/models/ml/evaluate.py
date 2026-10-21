@@ -1,5 +1,5 @@
 """
-Evaluates every active model via time-series cross-validation
+Evaluates every active model via the configured cross-validation method
 (train_all_models handles the CV itself), determines the best one by
 the configured selection metric, saves the winner as best_model.pkl
 and a comparison report as JSON.
@@ -68,11 +68,11 @@ def save_comparison_report(results: dict, best_model_name: str):
         "selection_metric": SELECTION_METRIC,
         "validation_mode": validation_method(),
         "validation_method": (
-            "Experimental shuffled K-fold on actual + interpolated rows; existing indicator inputs; nested K-fold tuning"
+            "Shuffled K-fold on actual + interpolated rows; existing indicator inputs; nested K-fold tuning"
             if kfold else "Actual + interpolated training; expanding-window ARIMA + ML backtest on measured targets; nested chronological tuning"
         ),
         "evaluation_warning": (
-            "Experimental K-fold scores include interpolated targets and use existing indicators. "
+            "K-fold scores include interpolated targets and use existing indicators. "
             "They do not measure three-year forecasting accuracy and are not directly comparable to chronological scores."
             if kfold else None
         ),

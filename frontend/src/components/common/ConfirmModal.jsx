@@ -74,7 +74,7 @@ export default function ConfirmModal({
 
           {/* Field rows — only shown when there are visible fields */}
           {visibleRows.length > 0 && (
-            <div className="rounded-xl border border-slate-200 overflow-hidden mb-4">
+            <div className="rounded-xl border border-slate-200 overflow-y-auto max-h-[40vh] mb-4">
               {visibleRows.map(({ key, label, value, icon: Icon, mask }, idx) => (
                 <div
                   key={key}
@@ -92,7 +92,7 @@ export default function ConfirmModal({
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
                       {label}
                     </p>
-                    <p className="text-sm text-slate-800 font-medium truncate">
+                    <p className="text-sm text-slate-800 font-medium truncate" title={mask ? undefined : String(value)}>
                       {mask ? maskValue(String(value)) : String(value)}
                     </p>
                   </div>

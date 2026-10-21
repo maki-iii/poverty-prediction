@@ -1,8 +1,9 @@
 fies:
   income_col: [TOINC_01, TOTINC, INC, TOTIN, TOINC]
-  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOTEX, TTOTEX, TOEXP]
+  expenditure_col: [TOEXP_01, TOTEXP, EXP, TOTEX, TTOTEX, TOEXP, T_TOTEX]
   family_size_col: [FSIZE_01, FSIZE, FAMSIZE]
-  weight_col: [RFACT, RFACT_R, FWGT, HHWGT, WEIGHT, WGT, FWEIGHT]
+  # RFADJ is the adjusted raising factor in historical FIES files (e.g. 1991).
+  weight_col: [RFACT, RFACT_R, FWGT, HHWGT, WEIGHT, WGT, FWEIGHT, RFADJ]
 
   region_col: [W_REGN, REG, REGION, REGN]
   region_code_map:

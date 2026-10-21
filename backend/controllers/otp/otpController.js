@@ -8,7 +8,7 @@ const otpController = {
   // POST /api/otp/send
   sendOTP: async (req, res) => {
     try {
-      const { email } = req.body;
+      const email = otpService.normalizeEmail(req.body.email);
 
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -37,9 +37,10 @@ const otpController = {
         return res.status(400).json({ message: "Email and OTP are required" });
       }
 
-      otpService.verify(email, otp);
+      const resetToken = otpService.verify(email, otp);
 
-      return res.status(200).json({ message: "OTP verified successfully" });
+      res.set("Cache-Control", "no-store");
+      return res.status(200).json({ message: "OTP verified successfully", resetToken });
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }
@@ -48,16 +49,16 @@ const otpController = {
   // POST /api/otp/reset-password
   resetPassword: async (req, res) => {
     try {
-      const { email, newPassword } = req.body;
+      const { email, newPassword, resetToken } = req.body;
 
       if (!email || !newPassword) {
         return res.status(400).json({ message: "Email and new password are required" });
       }
 
-      const result = await UserService.resetPassword(email, newPassword);
+      const result = await UserService.resetPassword(email, newPassword, resetToken);
       return res.status(200).json(result);
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: error.message, code: error.code });
     }
   },
 };

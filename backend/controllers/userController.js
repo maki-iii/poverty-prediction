@@ -6,9 +6,9 @@ const UserController = {
   // Social login (Google / Facebook)
   socialLogin: async (req, res) => {
     try {
-      const { name, email, uid } = req.body;
+      const { idToken } = req.body;
 
-      const user = await UserService.socialLogin({ name, email, uid });
+      const user = await UserService.socialLogin({ idToken });
 
       const token = jwt.sign(
         { id: user.id, role: user.role, username: user.username },
@@ -28,7 +28,7 @@ const UserController = {
         user,
       });
     } catch (err) {
-      return res.status(500).json({ message: err.message });
+      return res.status(401).json({ message: err.message });
     }
   },
 
@@ -207,7 +207,7 @@ const UserController = {
     try {
       const { id } = req.params;
       const { oldPassword, newPassword } = req.body;
-      const isAdmin = req.user?.role === "admin";
+      const isAdmin = req.user?.role === "super_admin" && String(req.user.id) !== id;
 
       const result = await UserService.changePassword(
         id,

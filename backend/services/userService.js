@@ -2,6 +2,8 @@ const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const admin = require("../configs/firebaseAdmin");
 const AuditLogService = require("./auditLogService");
+const otpService = require("./otp/otpService");
+const { randomBytes } = require("crypto");
 
 const validatePassword = (password) => {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
@@ -10,8 +12,29 @@ const validatePassword = (password) => {
 
 const UserService = {
 
-  socialLogin: async ({ name, email, uid }) => {
+  socialLogin: async ({ idToken }) => {
+    if (typeof idToken !== "string" || !idToken) {
+      throw new Error("Please sign in with Google or Facebook again.");
+    }
+    let identity;
+    try {
+      identity = await admin.auth().verifyIdToken(idToken, true);
+    } catch {
+      throw new Error("Social sign-in expired or is invalid. Please sign in again.");
+    }
+    if (!identity.email || !identity.email_verified || !identity.uid ||
+        !["google.com", "facebook.com"].includes(identity.firebase?.sign_in_provider)) {
+      throw new Error("Social sign-in requires a verified Google or Facebook email.");
+    }
+    const email = otpService.normalizeEmail(identity.email);
+    const uid = identity.uid;
+    const name = identity.name || email.split("@")[0];
     let user = await User.findByEmail(email);
+
+    // Never link an existing password account by email alone.
+    if (user && user.uid !== uid) {
+      throw new Error("This email already has an account. Use its original sign-in method.");
+    }
 
     if (!user) {
       const generateUsername = async (name) => {
@@ -32,7 +55,7 @@ const UserService = {
         name,
         email,
         username: await generateUsername(name),
-        password: uid,
+        password: randomBytes(32).toString("hex"),
         uid: uid,
         address: "N/A",
         role: "user",
@@ -157,6 +180,11 @@ const UserService = {
       throw new Error("Invalid username or password");
     }
 
+    // Older social accounts used their public Firebase UID as their password.
+    if (user.uid && password === user.uid) {
+      throw new Error("Please use social sign-in or reset your password.");
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new Error("Invalid username or password");
@@ -258,16 +286,18 @@ updateUser: async (id, { name, address, email }, actor = null) => {
   },
 
   // Reset password via OTP (forgot password)
-  resetPassword: async (email, newPassword) => {
-    const user = await User.findByEmail(email);
-    if (!user) {
-      throw new Error("No account found with that email");
-    }
-
+  resetPassword: async (email, newPassword, resetToken) => {
     if (!validatePassword(newPassword)) {
       throw new Error(
         "Password must be at least 8 characters long, include uppercase, lowercase, and a special character"
       );
+    }
+
+    email = otpService.normalizeEmail(email);
+    otpService.consumeReset(email, resetToken);
+    const user = await User.findByEmail(email);
+    if (!user) {
+      throw new Error("No account found with that email");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

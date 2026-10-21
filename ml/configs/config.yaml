@@ -37,7 +37,7 @@ arima:
 #   3. adding an entry here
 # ---------------------------------------------------------------------
 ml:
-  validation_method: kfold  # experimental; use time_series to restore chronological validation
+  validation_method: kfold  # selected default: shuffled K-fold with nested tuning
   active_models:
     - xgboost
     - ridge

@@ -2,29 +2,30 @@ import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import Loader from "../../common/Loader";
 
-export default function UploadButton({ onUpload, uploading }) {
+export default function UploadButton({ onUpload, uploading, multiple = false }) {
   const fileInputRef = useRef(null);
   const [error, setError] = useState("");
 
   const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const input = e.target;
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
 
     const validExtensions = [".csv", ".xlsx", ".xls"];
-    const isValid = validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
-    if (!isValid) {
-      setError("File must be .csv, .xlsx, or .xls");
-      e.target.value = "";
+    const invalidFile = files.find((file) => !validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext)));
+    if (invalidFile) {
+      setError(`"${invalidFile.name}" must be .csv, .xlsx, or .xls. No files were uploaded.`);
+      input.value = "";
       return;
     }
 
     setError("");
     try {
-      await onUpload(file);
+      await onUpload(multiple ? files : files[0]);
     } catch (err) {
       setError(err.message || "Upload failed");
     } finally {
-      e.target.value = "";
+      input.value = "";
     }
   };
 
@@ -38,13 +39,14 @@ export default function UploadButton({ onUpload, uploading }) {
                    shadow-md shadow-[#002366]/20 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {uploading ? <Loader /> : <Plus className="w-4 h-4" />}
-        {uploading ? "Uploading..." : "Add Dataset"}
+        {uploading ? "Uploading..." : multiple ? "Bulk Upload" : "Add Dataset"}
       </button>
 
       <input
         ref={fileInputRef}
         type="file"
         accept=".csv,.xlsx,.xls"
+        multiple={multiple}
         onChange={handleFileChange}
         className="hidden"
       />

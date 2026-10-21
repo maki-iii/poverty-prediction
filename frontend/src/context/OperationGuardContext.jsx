@@ -24,9 +24,14 @@ export default function OperationGuardProvider({ children }) {
     const beforeUnload = (event) => { event.preventDefault(); event.returnValue = ""; };
     const pageHide = () => {
       for (const operation of getOperations()) {
+        if (operation.local) {
+          operation.controller.abort();
+          continue;
+        }
         const base = new URL(axiosInstance.defaults.baseURL || "/", window.location.origin);
         const url = new URL(`/api/poverty/operations/${operation.id}/cancel`, base);
-        fetch(url, { method: "POST", credentials: "include", keepalive: true }).catch(() => {});
+        fetch(url, { method: "POST", credentials: "include", keepalive: true,
+          headers: { "ngrok-skip-browser-warning": "1" } }).catch(() => {});
       }
     };
     window.addEventListener("beforeunload", beforeUnload);

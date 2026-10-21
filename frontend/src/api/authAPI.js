@@ -4,6 +4,7 @@ import axios from "axios";
 const API = axios.create({
   baseURL: "/api/users",
   withCredentials: true,
+  headers: { "ngrok-skip-browser-warning": "1" },
 });
 
 export const register = (data) => API.post("/register", data);

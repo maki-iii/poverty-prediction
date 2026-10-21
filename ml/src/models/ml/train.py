@@ -1,4 +1,4 @@
-"""Selectable chronological pipeline validation or experimental shuffled K-fold.
+"""Shuffled K-fold validation with an optional chronological evaluation mode.
 
 Time-series mode scores measured targets with forecast indicators. K-fold scores
 actual and interpolated rows with existing indicators; it is not a forecast test.
@@ -33,7 +33,7 @@ def validation_method():
 
 
 def prepare_kfold(X):
-    """Experimental ML-only validation on actual and interpolated rows."""
+    """ML-only validation on actual and interpolated rows."""
     if CV_FOLDS < 2 or len(X) < CV_FOLDS:
         raise ValueError(f"K-fold requires at least {CV_FOLDS} rows and two folds.")
     splitter = KFold(n_splits=CV_FOLDS, shuffle=True,
@@ -156,7 +156,7 @@ def train_all_models():
     observed_mask = frame["source"].str.lower() != "interpolated"
     method = validation_method()
     if method == "kfold":
-        training_status.update(step="preprocessing", progress=10, message="Preparing experimental shuffled K-fold validation...")
+        training_status.update(step="preprocessing", progress=10, message="Preparing shuffled K-fold validation...")
         folds = prepare_kfold(X)
         inner_folds = [prepare_kfold(X.iloc[tr]) for tr, _, _ in folds]
     else:

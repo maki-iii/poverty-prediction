@@ -27,6 +27,14 @@ export function finishOperation(id) {
   publish();
 }
 
+// Keep navigation guarded between requests in a multi-file upload.
+export function startLocalOperation(label) {
+  const operation = { label, id: crypto.randomUUID(), controller: new AbortController(), local: true };
+  snapshot = [...snapshot, operation];
+  publish();
+  return operation;
+}
+
 export function installOperationTracking(client) {
   client.interceptors.request.use((config) => {
     const description = config.method === "post" && describeOperation(config.url);
@@ -62,7 +70,13 @@ export function installOperationTracking(client) {
 }
 
 export async function cancelOperations(client) {
-  const results = await Promise.allSettled(getOperations().map(async (operation) => {
+  const operations = getOperations();
+  // Stop queues before awaiting server acknowledgements, so no next file starts.
+  for (const operation of operations.filter((item) => item.local)) {
+    operation.controller.abort();
+    finishOperation(operation.id);
+  }
+  const results = await Promise.allSettled(operations.filter((item) => !item.local).map(async (operation) => {
     const deadline = Date.now() + 45000;
     while (true) {
       const { data } = await client.post(`/api/poverty/operations/${operation.id}/cancel`);
