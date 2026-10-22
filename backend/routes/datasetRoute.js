@@ -6,6 +6,19 @@ const verifyToken = require("../middlewares/authMiddleware");
 
 const { trackOperation, cancelOperation } = require("../middlewares/operationMiddleware");
 const router = express.Router();
+const { createChunkUploadRouter } = require("./chunkUploadRoute");
+const DatasetService = require("../services/datasetService");
+const AuditLogService = require("../services/auditLogService");
+router.use("/uploads", createChunkUploadRouter({
+  verifyToken,
+  trackOperation,
+  directory: path.join(__dirname, "..", "temp", "chunks"),
+  save: async (filePath, name, user) => {
+    const result = await DatasetService.uploadDataset(filePath, name, user.username);
+    await AuditLogService.log({ userId: user.id, username: user.username, action: AuditLogService.ACTIONS.UPLOAD, details: `Uploaded dataset "${name}"` });
+    return result;
+  },
+}));
 router.post("/operations/:operationId/cancel", verifyToken, cancelOperation);
 
 // Stream large files to a temp disk location instead of buffering the

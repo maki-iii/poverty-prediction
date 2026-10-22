@@ -39,11 +39,11 @@ test("a rejected file does not prevent other files or retry already uploaded fil
 });
 
 test("network uncertainty or expired authorization stops the rest without retrying", async () => {
-  for (const error of [new Error("Network Error"), httpError(401), httpError(403)]) {
+  for (const error of [new Error("Network Error"), httpError(401), httpError(403), httpError(502), httpError(504)]) {
     let calls = 0;
     const result = await uploadDatasetQueue(files, async () => { calls += 1; throw error; });
     assert.equal(calls, 1);
-    assert.equal(result[0].status, error.cause ? "failed" : "unconfirmed");
+    assert.equal(result[0].status, error.cause && error.cause.response.status < 500 ? "failed" : "unconfirmed");
     assert.deepEqual(result.slice(1).map((entry) => entry.status), ["not uploaded", "not uploaded"]);
     assert.equal(getOperations().length, 0);
   }

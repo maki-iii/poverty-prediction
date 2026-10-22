@@ -13,6 +13,7 @@ export function describeOperation(url = "") {
   if (url.endsWith("/pipeline/train")) return { label: "Model training", background: true, key: "training" };
   if (url.endsWith("/pipeline/forecast")) return { label: "Forecasting", key: "forecast" };
   if (url.endsWith("/datasets/upload")) return { label: "Dataset upload", key: "upload" };
+  if (/\/datasets\/uploads\/[^/]+\/complete$/.test(url)) return { label: "Dataset upload", key: "upload" };
   const match = url.match(/\/datasets\/(\d+)\/(process|merge)$/);
   if (match) return {
     label: match[2] === "process" ? "Preprocessing" : "Dataset merging",

@@ -26,13 +26,14 @@ export async function uploadDatasetQueue(files, upload, onChange = () => {}) {
         entry.progress = 100;
       } catch (error) {
         const status = (error.cause || error).response?.status;
-        entry.status = signal.aborted ? "stopped" : status ? "failed" : "unconfirmed";
+        const uncertain = !status || status >= 500;
+        entry.status = signal.aborted ? "stopped" : uncertain ? "unconfirmed" : "failed";
         entry.message = signal.aborted ? "Upload stopped."
-          : status ? error.message
-          : "Upload could not be confirmed. Check Pending Uploads before retrying.";
+          : uncertain ? "Upload could not be confirmed. Check Pending Uploads before retrying."
+          : error.message;
         // A lost connection may hide a successful server write. Do not retry
         // automatically or send more files until the user checks the results.
-        if (signal.aborted || !status || status === 401 || status === 403) break;
+        if (signal.aborted || uncertain || status === 401 || status === 403) break;
       } finally {
         publish();
       }

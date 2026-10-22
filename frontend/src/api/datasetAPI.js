@@ -1,4 +1,5 @@
 import axiosInstance from "../configs/axiosInstance";
+import { chunkedUpload } from "../services/chunkedUpload.js";
 
 const BASE = "/api/datasets";
 
@@ -6,6 +7,7 @@ const BASE = "/api/datasets";
 // Business logic that USES these lives in services/datasetService.js.
 
 export const uploadDataset = (file, onProgress) => {
+  if (file.size > 1024 * 1024) return chunkedUpload(axiosInstance, file, onProgress);
   const formData = new FormData();
   formData.append("file", file);
 
