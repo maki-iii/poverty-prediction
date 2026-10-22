@@ -1,0 +1,33 @@
+candidate,cutoff,year,actual,predicted,parameters
+xgboost/arima,2009,2012,2.6,2.4067840576171875,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/arima,2009,2012,2.6,1.6834080138946779,{'ridge__alpha': 0.1}
+random_forest/arima,2009,2012,2.6,2.9629978835978865,"{'max_depth': 2, 'min_samples_leaf': 2}"
+xgboost/past_selected,2009,2012,2.6,2.4067840576171875,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/past_selected,2009,2012,2.6,1.6834071611315196,{'ridge__alpha': 0.1}
+random_forest/past_selected,2009,2012,2.6,2.9629978835978865,"{'max_depth': 2, 'min_samples_leaf': 2}"
+poverty_last_value,2009,2012,2.6,2.4,
+poverty_drift,2009,2012,2.6,1.7999999999999998,
+xgboost/arima,2012,2015,2.8,2.592881917953491,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/arima,2012,2015,2.8,2.505295692326266,{'ridge__alpha': 1.0}
+random_forest/arima,2012,2015,2.8,2.5584746031746035,"{'max_depth': 2, 'min_samples_leaf': 2}"
+xgboost/past_selected,2012,2015,2.8,2.592881917953491,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/past_selected,2012,2015,2.8,1.8720262491215718,{'ridge__alpha': 1.0}
+random_forest/past_selected,2012,2015,2.8,2.5584746031746035,"{'max_depth': 2, 'min_samples_leaf': 2}"
+poverty_last_value,2012,2015,2.8,2.6,
+poverty_drift,2012,2015,2.8,2.16,
+xgboost/arima,2015,2018,1.4,2.792391538619995,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/arima,2015,2018,1.4,1.1835201620033637,{'ridge__alpha': 1.0}
+random_forest/arima,2015,2018,1.4,2.6409933930267275,"{'max_depth': 2, 'min_samples_leaf': 2}"
+xgboost/past_selected,2015,2018,1.4,2.792391538619995,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/past_selected,2015,2018,1.4,1.1835201620033637,{'ridge__alpha': 1.0}
+random_forest/past_selected,2015,2018,1.4,2.6409933930267275,"{'max_depth': 2, 'min_samples_leaf': 2}"
+poverty_last_value,2015,2018,1.4,2.8,
+poverty_drift,2015,2018,1.4,2.4666666666666663,
+xgboost/arima,2018,2021,2.2,1.4212883710861206,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/arima,2018,2021,2.2,0.5403732234914576,{'ridge__alpha': 1.0}
+random_forest/arima,2018,2021,2.2,2.0414685256101914,"{'max_depth': 2, 'min_samples_leaf': 2}"
+xgboost/past_selected,2018,2021,2.2,1.4212883710861206,"{'max_depth': 2, 'reg_lambda': 1.0}"
+ridge/past_selected,2018,2021,2.2,0.5403719067039003,{'ridge__alpha': 1.0}
+random_forest/past_selected,2018,2021,2.2,2.0414685256101914,"{'max_depth': 2, 'min_samples_leaf': 2}"
+poverty_last_value,2018,2021,2.2,1.4,
+poverty_drift,2018,2021,2.2,0.9142857142857141,

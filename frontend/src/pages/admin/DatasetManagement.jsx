@@ -4,7 +4,8 @@ import { useDatasets, useDatasetActions } from "../../hooks/useDatasets";
 import useProcessingProgress from "../../hooks/useProcessingProgress";
 
 import SearchBar from "../../components/common/SearchBar";
-import DateRangeFilter from "../../components/common/DateRangeFilter";
+import YearRangeFilter from "../../components/common/YearRangeFilter";
+import { availableYears, matchesYearRange } from "../../utils/yearFilter";
 import Loader from "../../components/common/Loader";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import Pagination from "../../components/common/Pagination";
@@ -21,7 +22,7 @@ import { mergeDatasetQueue, validateMergeSelection } from "../../services/datase
 
 export default function DatasetManagement() {
   const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+  const [yearRange, setYearRange] = useState({ startYear: "", endYear: "" });
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -55,28 +56,24 @@ export default function DatasetManagement() {
     reset: resetProcessing,
   } = useProcessingProgress();
 
-  // --- Client-side filtering (search + date range) ---
+  const years = availableYears([...(pendingDatasets || []), ...(processedDatasets || [])]);
+
+  // Filter by the assigned survey year, never the upload timestamp.
   const filterDatasets = (list) => {
     if (!list) return [];
     return list.filter((d) => {
       const matchesSearch = d.original_filename.toLowerCase().includes(search.toLowerCase());
-      const uploadedDate = d.uploaded_at ? new Date(d.uploaded_at) : null;
-      const matchesStart =
-        !dateRange.startDate || (uploadedDate && uploadedDate >= new Date(dateRange.startDate));
-      const matchesEnd =
-        !dateRange.endDate ||
-        (uploadedDate && uploadedDate <= new Date(dateRange.endDate + "T23:59:59"));
-      return matchesSearch && matchesStart && matchesEnd;
+      return matchesSearch && matchesYearRange(d.year, yearRange);
     });
   };
 
   const filteredPending = useMemo(
     () => filterDatasets(pendingDatasets),
-    [pendingDatasets, search, dateRange]
+    [pendingDatasets, search, yearRange]
   );
   const filteredProcessed = useMemo(
     () => filterDatasets(processedDatasets),
-    [processedDatasets, search, dateRange]
+    [processedDatasets, search, yearRange]
   );
   const selectedMergeDatasets = filteredProcessed.filter((dataset) => selectedMergeIds.includes(dataset.id));
   const selectMergeDatasets = (datasets, checked) => {
@@ -118,7 +115,7 @@ export default function DatasetManagement() {
   useEffect(() => {
     resetPendingPage();
     resetProcessedPage();
-  }, [search, dateRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, yearRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // React once when a processing job (started via handleProcess) finishes
   useEffect(() => {
@@ -300,12 +297,15 @@ export default function DatasetManagement() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-4 bg-white border border-slate-200 rounded-xl p-4">
         <SearchBar value={search} onChange={(value) => { setSearch(value); setSelectedMergeIds([]); }} placeholder="Search by filename..." />
-        <DateRangeFilter
-          startDate={dateRange.startDate}
-          endDate={dateRange.endDate}
-          onChange={(value) => { setDateRange(value); setSelectedMergeIds([]); }}
+        <YearRangeFilter
+          years={years}
+          startYear={yearRange.startYear}
+          endYear={yearRange.endYear}
+          onChange={(value) => { setYearRange(value); setSelectedMergeIds([]); }}
         />
       </div>
+
+      {(yearRange.startYear || yearRange.endYear) && <p className="text-xs text-slate-500">Datasets without an assigned survey year are hidden. Clear the year filter to see pending uploads.</p>}
 
       {/* Table 1: Pending uploads */}
       <section>

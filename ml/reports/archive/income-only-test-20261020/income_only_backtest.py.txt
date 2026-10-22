@@ -1,0 +1,346 @@
+"""Income-only, past-only three-year evaluation; never changes the live pipeline.
+
+Run from ml: python -m src.experiments.income_only_backtest --output <new-folder>
+"""
+import argparse
+import hashlib
+import json
+from datetime import datetime, timezone
+from decimal import Decimal, ROUND_DOWN
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.base import clone
+from sklearn.model_selection import ParameterGrid
+
+from src.database.repository.actuals_repo import get_actuals
+from src.metrics.metrics import compute_metrics
+from src.models.forecasting.forecast_inputs import fit_and_forecast
+from src.models.ml.model_factory import get_model, CONFIG
+from src.pipeline.indicator_basis import current_basis_rows, SAVED_MODELS_DIR
+
+FEATURES = ['avg_household_income']
+TARGET = CONFIG['target_column']
+METHODS = ('last_value', 'drift', 'arima')
+STRATEGIES = ('arima', 'past_selected')
+HORIZON = 3
+
+
+def anchors_only(raw):
+    frame = current_basis_rows(raw)
+    if frame.empty:
+        raise ValueError('No threshold-processed FIES observations are available.')
+    frame = frame.loc[frame.source.str.lower().eq('fies')].copy().sort_values('year')
+    if frame.region.nunique() != 1 or frame.year.duplicated().any():
+        raise ValueError('Use one region and unique survey years.')
+    columns = [*FEATURES, TARGET, 'poverty_threshold']
+    frame[columns] = frame[columns].astype(float)
+    if not np.isfinite(frame[columns].to_numpy()).all():
+        raise ValueError('Actual observations must contain finite inputs, targets and thresholds.')
+    if not frame[TARGET].between(0, 100).all() or not frame.poverty_threshold.gt(0).all():
+        raise ValueError('Invalid target percentage or poverty threshold.')
+    return frame.reset_index(drop=True)
+
+
+def history_at(anchors, cutoff):
+    # Filter raw survey anchors BEFORE interpolation, including in every inner fold.
+    past = anchors.loc[anchors.year <= cutoff].copy()
+    if past.empty or int(past.year.max()) != cutoff:
+        raise ValueError('The cutoff must be an observed survey year.')
+    # The experiment does not consume expenditure or family size, even when
+    # building its annual history. The live configuration remains untouched.
+    values = past.set_index('year')[[*FEATURES, TARGET]].astype(float)
+    annual = values.reindex(range(int(values.index.min()), cutoff + 1))
+    annual = annual.interpolate(method='index', limit_area='inside')
+    annual.loc[values.index, values.columns] = values
+    annual.index.name = 'year'
+    return annual.reset_index()
+
+
+def windows(anchors, minimum=5):
+    """Observed targets only, with non-overlapping windows up to three years ahead."""
+    result, index = [], minimum - 1
+    while index < len(anchors) - 1:
+        cutoff = int(anchors.iloc[index].year)
+        targets = anchors.loc[(anchors.year > cutoff) & (anchors.year <= cutoff + HORIZON)]
+        if not targets.empty:
+            result.append((cutoff, targets.copy()))
+            index = int(np.flatnonzero(anchors.year.to_numpy() == targets.year.max())[0])
+        else:
+            index += 1
+    return result
+
+
+def simple_forecast(series, method, steps=HORIZON):
+    values = series.astype(float)
+    last = float(values.iloc[-1])
+    if method == 'last_value':
+        return np.repeat(last, steps)
+    if method == 'drift':
+        elapsed = float(values.index[-1] - values.index[0])
+        slope = (last - float(values.iloc[0])) / elapsed if elapsed else 0.0
+        return last + slope * np.arange(1, steps + 1)
+    if method == 'arima':
+        return np.asarray(fit_and_forecast(values, steps)[0], dtype=float)
+    raise ValueError(f'Unknown forecasting method: {method}')
+
+
+class Backtest:
+    def __init__(self, anchors):
+        self.anchors = anchors.copy(deep=True)
+        self.forecast_cache = {}
+        self.selection_cache = {}
+        self.fit_cache = {}
+
+    def forecast(self, cutoff, method, feature):
+        key = (cutoff, method, feature)
+        if key not in self.forecast_cache:
+            series = history_at(self.anchors, cutoff).set_index('year')[feature]
+            values = simple_forecast(series, method)
+            if not np.isfinite(values).all():
+                raise ValueError(f'Non-finite {method} forecast for {feature} at {cutoff}')
+            self.forecast_cache[key] = values
+        return self.forecast_cache[key]
+
+    def selected_methods(self, cutoff):
+        if cutoff not in self.selection_cache:
+            past = self.anchors.loc[self.anchors.year <= cutoff].reset_index(drop=True)
+            inner = windows(past, minimum=3)
+            selected = {}
+            for feature in FEATURES:
+                losses = {}
+                for method in METHODS:
+                    errors = []
+                    for origin, targets in inner:
+                        predictions = self.forecast(origin, method, feature)
+                        for _, row in targets.iterrows():
+                            errors.append((float(row[feature]) - predictions[int(row.year) - origin - 1]) ** 2)
+                    losses[method] = float(np.mean(errors)) if errors else 0.0
+                # Deterministic last-value fallback when no past validation exists.
+                selected[feature] = min(METHODS, key=lambda method: losses[method])
+            self.selection_cache[cutoff] = selected
+        return self.selection_cache[cutoff]
+
+    def inputs(self, cutoff, strategy, years):
+        methods = self.selected_methods(cutoff) if strategy == 'past_selected' else dict.fromkeys(FEATURES, 'arima')
+        offsets = np.asarray(years, dtype=int) - cutoff - 1
+        if np.any(offsets < 0) or np.any(offsets >= HORIZON):
+            raise ValueError('Requested years must be within the three-year window.')
+        result = pd.DataFrame({f: self.forecast(cutoff, methods[f], f)[offsets] for f in FEATURES})
+        # Match the production pipeline's two-decimal stored indicator inputs.
+        return result.round(2)
+
+    def fit(self, name, cutoff, strategy):
+        key = (name, cutoff, strategy)
+        if key in self.fit_cache:
+            return self.fit_cache[key]
+        past = self.anchors.loc[self.anchors.year <= cutoff].reset_index(drop=True)
+        inner = windows(past, minimum=3)
+        estimator = get_model(name).model
+        grid = CONFIG['ml'].get('tuning', {}).get(name, {})
+        best_loss, best_params = float('inf'), {}
+        for params in ParameterGrid(grid):
+            errors = []
+            for origin, targets in inner:
+                train = history_at(past, origin)
+                fitted = clone(estimator).set_params(**params).fit(train[FEATURES], train[TARGET])
+                predicted = np.clip(fitted.predict(self.inputs(origin, strategy, targets.year)), 0, 100)
+                errors.extend((targets[TARGET].to_numpy() - predicted) ** 2)
+            loss = float(np.mean(errors)) if errors else 0.0
+            if loss < best_loss:
+                best_loss, best_params = loss, params
+        train = history_at(past, cutoff)
+        fitted = clone(estimator).set_params(**best_params).fit(train[FEATURES], train[TARGET])
+        self.fit_cache[key] = (fitted, best_params)
+        return fitted, best_params
+
+    def run(self):
+        outer = windows(self.anchors)
+        if len(outer) < 2:
+            raise ValueError('Need at least two later observed target windows after five survey anchors.')
+        predictions, indicators, fold_info = [], [], []
+        names = CONFIG['ml']['active_models']
+        for cutoff, targets in outer:
+            print(f'Backtesting through {cutoff}; actual target years {targets.year.tolist()}', flush=True)
+            history = history_at(self.anchors, cutoff)
+            fold_info.append({'cutoff': cutoff, 'test_years': targets.year.astype(int).tolist(),
+                              'actual_train_rows': int((self.anchors.year <= cutoff).sum()),
+                              'annual_train_rows': len(history), 'indicator_methods': self.selected_methods(cutoff)})
+            for feature in FEATURES:
+                for method in METHODS:
+                    forecast = self.forecast(cutoff, method, feature)
+                    for _, row in targets.iterrows():
+                        indicators.append({'cutoff': cutoff, 'year': int(row.year), 'feature': feature,
+                                           'method': method, 'actual': float(row[feature]),
+                                           'predicted': float(forecast[int(row.year) - cutoff - 1])})
+            for strategy in STRATEGIES:
+                future = self.inputs(cutoff, strategy, targets.year)
+                for name in names:
+                    fitted, params = self.fit(name, cutoff, strategy)
+                    predicted = np.clip(fitted.predict(future), 0, 100)
+                    for (_, row), value in zip(targets.iterrows(), predicted):
+                        predictions.append({'candidate': f'{name}/{strategy}', 'cutoff': cutoff,
+                                            'year': int(row.year), 'actual': float(row[TARGET]),
+                                            'predicted': float(value), 'parameters': params})
+            poverty_series = history.set_index('year')[TARGET]
+            for method in ('last_value', 'drift'):
+                forecast = np.clip(simple_forecast(poverty_series, method), 0, 100)
+                for _, row in targets.iterrows():
+                    predictions.append({'candidate': f'poverty_{method}', 'cutoff': cutoff,
+                                        'year': int(row.year), 'actual': float(row[TARGET]),
+                                        'predicted': float(forecast[int(row.year) - cutoff - 1])})
+        table = pd.DataFrame(predictions)
+        scores = {name: {**compute_metrics(g.actual, g.predicted), 'actual_test_points': len(g)}
+                  for name, g in table.groupby('candidate')}
+        indicator_scores = {}
+        for (feature, method), g in pd.DataFrame(indicators).groupby(['feature', 'method']):
+            indicator_scores.setdefault(feature, {})[method] = compute_metrics(g.actual, g.predicted)
+        best_ml = min((n for n in scores if '/' in n), key=lambda n: scores[n]['rmse'])
+        best_overall = min(scores, key=lambda n: scores[n]['rmse'])
+        latest = int(self.anchors.year.max())
+        years = list(range(latest + 1, latest + 4))
+        name, strategy = best_ml.split('/')
+        fitted, params = self.fit(name, latest, strategy)
+        inputs = self.inputs(latest, strategy, years)
+        values = np.clip(fitted.predict(inputs), 0, 100)
+        errors = table.loc[table.candidate.eq(best_ml)]
+        radius = float(np.max(np.abs(errors.actual - errors.predicted)))
+        preview = [{'year': y, 'prediction': float(p), 'historical_error_low': max(0., float(p) - radius),
+                    'historical_error_high': min(100., float(p) + radius)} for y, p in zip(years, values)]
+        full = history_at(self.anchors, latest)
+        notes = [
+            'This income-only test did not change the active three-input K-fold configuration or promote any model.',
+            'The sole model input is weighted average family income below the poverty threshold; the population and aggregation have not changed.',
+            'Only observed FIES poverty targets are scored. Every fold interpolates from its past anchors only.',
+            'ARIMA is the existing automatic specification search; past_selected compares ARIMA, last value and drift using earlier observed years.',
+            'Candidate scores use nested chronological tuning; the current production K-fold score is not directly comparable.',
+            'The winning candidate is selected on these few outer test points; its reported score is not an independent final holdout.',
+            'The historical-error range uses the largest observed end-to-end error; it is descriptive, NOT a calibrated prediction interval.',
+            'Survey definitions, threshold methodology, family weights and family-versus-population incidence require source-document verification.',
+        ]
+        covered = sorted(set((table.year - table.cutoff).astype(int)))
+        missing = sorted(set(range(1, HORIZON + 1)) - set(covered))
+        notes.append(f'Observed target horizons: {covered} years ahead. Horizons without actual targets: {missing}; accuracy at those horizons remains unknown.')
+        drops = self.anchors.loc[self.anchors.poverty_threshold.diff().lt(0), 'year'].astype(int).tolist()
+        if drops:
+            notes.append(f'Threshold decreases occur in {drops}; verify source vintage/methodology rather than correcting automatically.')
+        return {'test_only': True, 'created_at': datetime.now(timezone.utc).isoformat(),
+                'config_snapshot': CONFIG, 'test_feature_columns': FEATURES,
+                'actual_years': self.anchors.year.astype(int).tolist(),
+                'actual_rows': len(self.anchors), 'interpolated_rows': len(full) - len(self.anchors),
+                'folds': fold_info, 'scores': scores, 'indicator_scores': indicator_scores,
+                'best_ml': best_ml, 'best_overall': best_overall, 'prediction_details': predictions,
+                'indicator_details': indicators, 'preview': preview, 'preview_parameters': params,
+                'preview_inputs': inputs.assign(year=years).to_dict('records'), 'notes': notes}
+
+
+def protected_fingerprint():
+    """Hashes only; no saved credentials or database contents in test artifacts."""
+    from sqlalchemy import inspect, text
+    from src.database.base import engine
+    digest = hashlib.sha256()
+    with engine.connect() as connection:
+        for table in ['actuals', 'uploaded_datasets', 'forecasts', 'predictions', 'training_runs', 'audit_logs', 'users']:
+            if not inspect(connection).has_table(table):
+                continue
+            rows = connection.execute(text(f'SELECT * FROM `{table}`')).mappings()
+            encoded = sorted(json.dumps(dict(row), sort_keys=True, default=str) for row in rows)
+            digest.update(table.encode())
+            digest.update(json.dumps(encoded).encode())
+    files = list(SAVED_MODELS_DIR.glob('*')) + list((Path(__file__).resolve().parents[2] / 'configs').glob('*'))
+    for path in sorted(files):
+        if path.is_file():
+            digest.update(path.name.encode())
+            digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def display(value):
+    return 'undefined' if value is None else str(Decimal(str(value)).quantize(Decimal('.01'), rounding=ROUND_DOWN))
+
+
+def markdown_report(report):
+    lines = ['# Income-only evaluation — test only', '',
+             'Only weighted average family income is used by the test models. The live three-input setup is unchanged.', '',
+             f"History: {report['actual_rows']} survey years plus {report['interpolated_rows']} interpolated years.",
+             f"Actual survey years: {', '.join(map(str, report['actual_years']))}.", '',
+             'Scores below evaluate forecast indicators followed by ML against actual poverty observations.',
+             'Displayed numbers are truncated to two decimals; JSON retains full precision.', '',
+             '| Candidate | RMSE | MAE | R² | Actual targets |', '|---|---:|---:|---:|---:|']
+    for name, score in sorted(report['scores'].items(), key=lambda item: item[1]['rmse']):
+        lines.append(f"| {name} | {display(score['rmse'])} | {display(score['mae'])} | {display(score['r2'])} | {score['actual_test_points']} |")
+    if report.get('previous_comparison'):
+        comparison = report['previous_comparison']
+        lines += ['', '## Comparison with the archived three-input test', '', comparison['message']]
+        if comparison['comparable']:
+            lines += ['', '| Candidate | Three-input RMSE | Income-only RMSE | Three-input R² | Income-only R² |',
+                      '|---|---:|---:|---:|---:|']
+            for name, scores in comparison['scores'].items():
+                old, new = scores['three_input'], scores['income_only']
+                lines.append(f"| {name} | {display(old['rmse'])} | {display(new['rmse'])} | {display(old['r2'])} | {display(new['r2'])} |")
+    lines += ['', f"Best ML candidate in this test: **{report['best_ml']}**.",
+              f"Best candidate including simple poverty baselines: **{report['best_overall']}**.", '',
+              '## Historical windows', '', '| Trained through | Actual target years |', '|---|---|']
+    lines += [f"| {f['cutoff']} | {', '.join(map(str, f['test_years']))} |" for f in report['folds']]
+    lines += ['', '## Indicator forecasting comparison', '', '| Indicator | Method | RMSE | MAE |', '|---|---|---:|---:|']
+    for feature, methods in report['indicator_scores'].items():
+        for method, score in methods.items():
+            lines.append(f"| {feature} | {method} | {display(score['rmse'])} | {display(score['mae'])} |")
+    lines += ['', '## Separate prediction preview', '',
+              'These predictions are not published to the application. The range is descriptive historical error, not a confidence interval.', '',
+              '| Year | Poverty prediction | Historical-error range |', '|---|---:|---:|']
+    lines += [f"| {r['year']} | {display(r['prediction'])}% | {display(r['historical_error_low'])}–{display(r['historical_error_high'])}% |" for r in report['preview']]
+    lines += ['', '## Interpretation and data review', ''] + [f'- {note}' for note in report['notes']]
+    lines += ['', f"Protected live state unchanged during test: **{report['protected_state_unchanged']}**.", '']
+    return '\n'.join(lines)
+
+
+def compare_previous(report, anchors, path):
+    previous = json.loads(path.read_text(encoding='utf-8'))
+    original = pd.read_json(path.parent / 'input_snapshot.json').sort_values('year')
+    current = anchors.sort_values('year')
+    columns = ['year', *CONFIG['feature_columns'], TARGET, 'poverty_threshold']
+    matching_data = len(original) == len(current) and np.allclose(
+        original[columns].astype(float), current[columns].astype(float), rtol=0, atol=1e-8)
+    matching_config = previous.get('config_snapshot') == CONFIG
+    matching_windows = [(f['cutoff'], f['test_years']) for f in previous['folds']] == [
+        (f['cutoff'], f['test_years']) for f in report['folds']]
+    if not (matching_data and matching_config and matching_windows):
+        return {'comparable': False, 'message': 'Data, settings or historical windows changed; do not attribute differences solely to income-only inputs.'}
+    return {'comparable': True, 'message': 'The input snapshot, model settings and historical target years match the archived test.',
+            'scores': {name: {'three_input': previous['scores'][name], 'income_only': score}
+                       for name, score in report['scores'].items() if '/' in name and name in previous['scores']}}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, required=True, help='New folder outside saved_models and configs')
+    parser.add_argument('--comparison', type=Path, help='Archived results.json with its adjacent input_snapshot.json')
+    args = parser.parse_args()
+    output = args.output.resolve()
+    project = Path(__file__).resolve().parents[2]
+    for protected in [project / 'saved_models', project / 'configs', project / 'data', project / 'src',
+                      SAVED_MODELS_DIR.parents[1], Path('/app/saved_models'), Path('/app/data')]:
+        if output == protected.resolve() or protected.resolve() in output.parents:
+            raise ValueError('Test output must be outside production data, models, source and config directories.')
+    output.mkdir(parents=True, exist_ok=False)
+    before = protected_fingerprint()
+    anchors = anchors_only(get_actuals(region=CONFIG['region']))
+    anchors.to_json(output / 'input_snapshot.json', orient='records', date_format='iso', indent=2)
+    report = Backtest(anchors).run()
+    if args.comparison:
+        report['previous_comparison'] = compare_previous(report, anchors, args.comparison)
+    report['protected_state_unchanged'] = before == protected_fingerprint()
+    if not report['protected_state_unchanged']:
+        report['notes'].append('Live state changed during this read-only run. Check concurrent user actions before interpreting the snapshot as current.')
+    (output / 'results.json').write_text(json.dumps(report, indent=2, allow_nan=False), encoding='utf-8')
+    (output / 'REPORT.md').write_text(markdown_report(report), encoding='utf-8')
+    pd.DataFrame(report['prediction_details']).to_csv(output / 'historical_predictions.csv', index=False)
+    print(f"Saved test report: {output / 'REPORT.md'}", flush=True)
+    print(json.dumps({'best_ml': report['best_ml'], 'best_overall': report['best_overall'],
+                      'scores': report['scores'], 'protected_state_unchanged': report['protected_state_unchanged']}), flush=True)
+
+
+if __name__ == '__main__':
+    main()

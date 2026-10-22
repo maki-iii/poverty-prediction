@@ -4,7 +4,8 @@ import { Table2 } from "lucide-react";
 import { useTimeline, usePipelineActions } from "../../hooks/usePoverty";
 
 import SearchBar from "../../components/common/SearchBar";
-import DateRangeFilter from "../../components/common/DateRangeFilter";
+import YearRangeFilter from "../../components/common/YearRangeFilter";
+import { availableYears, matchesYearRange } from "../../utils/yearFilter";
 import Loader from "../../components/common/Loader";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import DataTable from "../../components/admin/Data/DataTable";
@@ -14,7 +15,7 @@ import { useToast } from "../../context/ToastContext";
 
 export default function Data() {
   const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+  const [yearRange, setYearRange] = useState({ startYear: "", endYear: "" });
   const [rowToDelete, setRowToDelete] = useState(null);
   const toast = useToast();
 
@@ -30,15 +31,9 @@ export default function Data() {
         row.region.toLowerCase().includes(search.toLowerCase()) ||
         String(row.year).includes(search);
 
-      const startYear = dateRange.startDate ? new Date(dateRange.startDate).getFullYear() : null;
-      const endYear = dateRange.endDate ? new Date(dateRange.endDate).getFullYear() : null;
-
-      const matchesStart = !startYear || row.year >= startYear;
-      const matchesEnd = !endYear || row.year <= endYear;
-
-      return matchesSearch && matchesStart && matchesEnd;
+      return matchesSearch && matchesYearRange(row.year, yearRange);
     });
-  }, [actuals, search, dateRange]);
+  }, [actuals, search, yearRange]);
 
   // --- Pagination (depends on filteredActuals, so must come after it) ---
   const {
@@ -53,7 +48,7 @@ export default function Data() {
   // Reset to page 1 whenever filters change
   useEffect(() => {
     resetPage();
-  }, [search, dateRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, yearRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = (row) => {
     if (timeline?.data_history === "fies_only" && row.source?.toLowerCase() === "interpolated") {
@@ -92,10 +87,11 @@ export default function Data() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-4 bg-white border border-slate-200 rounded-xl p-4">
         <SearchBar value={search} onChange={setSearch} placeholder="Search by region or year..." />
-        <DateRangeFilter
-          startDate={dateRange.startDate}
-          endDate={dateRange.endDate}
-          onChange={setDateRange}
+        <YearRangeFilter
+          years={availableYears(actuals || [])}
+          startYear={yearRange.startYear}
+          endYear={yearRange.endYear}
+          onChange={setYearRange}
         />
       </div>
 

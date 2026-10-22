@@ -1,0 +1,84 @@
+import unittest
+from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
+
+from src.experiments import small_data_backtest as trial
+from src.pipeline.indicator_basis import INDICATOR_BASIS
+
+
+def surveys():
+    rows = []
+    for i, year in enumerate(range(1997, 2022, 3)):
+        rows.append(dict(region='NCR', year=year, source='FIES', indicator_basis=INDICATOR_BASIS,
+                         poverty_incidence=6 - i * .5, poverty_threshold=10000 + i * 1000,
+                         avg_household_income=50000 + i * 2000,
+                         avg_household_expenditure=40000 + i * 1000, avg_family_size=7 - i * .1))
+    return pd.DataFrame(rows)
+
+
+class SmallDataBacktestTests(unittest.TestCase):
+    def test_interpolation_is_rebuilt_from_past_anchors(self):
+        raw = surveys()
+        expected = trial.history_at(raw, 2009)
+        changed = raw.copy(deep=True)
+        changed.loc[changed.year > 2009, trial.FEATURES + [trial.TARGET]] = 999999
+        pd.testing.assert_frame_equal(trial.history_at(changed, 2009), expected)
+        self.assertEqual(expected.year.max(), 2009)
+        self.assertAlmostEqual(expected.loc[expected.year.eq(1998), trial.TARGET].iloc[0], 6 - .5 / 3)
+
+    def test_windows_score_observations_not_interpolated_years(self):
+        splits = trial.windows(surveys())
+        self.assertEqual([cutoff for cutoff, _ in splits], [2009, 2012, 2015, 2018])
+        self.assertEqual([int(rows.year.iloc[0]) for _, rows in splits], [2012, 2015, 2018, 2021])
+        for cutoff, targets in splits:
+            self.assertTrue(targets.year.gt(cutoff).all())
+            self.assertTrue(targets.year.le(cutoff + 3).all())
+
+    def test_selection_does_not_access_future_survey_values(self):
+        before = surveys()
+        after = before.copy(deep=True)
+        after.loc[after.year > 2009, trial.FEATURES + [trial.TARGET]] = 999999
+        def fake_arima(series, steps):
+            return np.repeat(float(series.iloc[-1]), steps), 'test'
+        with patch.object(trial, 'fit_and_forecast', side_effect=fake_arima):
+            a, b = trial.Backtest(before), trial.Backtest(after)
+            self.assertEqual(a.selected_methods(2009), b.selected_methods(2009))
+            pd.testing.assert_frame_equal(a.inputs(2009, 'past_selected', [2010, 2011, 2012]),
+                                          b.inputs(2009, 'past_selected', [2010, 2011, 2012]))
+
+    def test_drift_accounts_for_elapsed_years(self):
+        series = pd.Series([10., 16.], index=[2000, 2003])
+        np.testing.assert_array_equal(trial.simple_forecast(series, 'drift'), [18, 20, 22])
+        np.testing.assert_array_equal(trial.simple_forecast(series, 'last_value'), [16, 16, 16])
+
+    def test_only_compatible_fies_anchors_are_used(self):
+        raw = surveys()
+        raw.loc[0, 'source'] = 'APIS'
+        raw.loc[1, 'indicator_basis'] = None
+        before = raw.copy(deep=True)
+        self.assertEqual(trial.anchors_only(raw).year.min(), 2003)
+        pd.testing.assert_frame_equal(raw, before)
+
+    def test_end_to_end_test_report_keeps_actual_score_counts(self):
+        raw = surveys()
+        before = raw.copy(deep=True)
+        def fake_arima(series, steps):
+            return np.repeat(float(series.iloc[-1]), steps), 'test'
+        with patch.dict(trial.CONFIG['ml'], active_models=['ridge'], tuning={'ridge': {'ridge__alpha': [1.0]}}), \
+             patch.object(trial, 'fit_and_forecast', side_effect=fake_arima):
+            result = trial.Backtest(raw).run()
+        self.assertTrue(result['test_only'])
+        self.assertEqual(result['actual_rows'], 9)
+        self.assertEqual(result['interpolated_rows'], 16)
+        self.assertEqual([r['year'] for r in result['preview']], [2022, 2023, 2024])
+        self.assertTrue(all(score['actual_test_points'] == 4 for score in result['scores'].values()))
+        self.assertTrue(any('NOT a calibrated' in note for note in result['notes']))
+        self.assertTrue(all(0 <= r['historical_error_low'] <= r['prediction'] <= r['historical_error_high'] <= 100
+                            for r in result['preview']))
+        pd.testing.assert_frame_equal(raw, before)
+
+
+if __name__ == '__main__':
+    unittest.main()

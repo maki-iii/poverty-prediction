@@ -1,0 +1,920 @@
+{
+  "test_only": true,
+  "created_at": "2026-10-19T14:27:26.611784+00:00",
+  "config_snapshot": {
+    "region": "NCR",
+    "data_history": "fies_only",
+    "require_poverty_threshold": true,
+    "target_column": "poverty_incidence",
+    "feature_columns": [
+      "avg_household_income",
+      "avg_household_expenditure",
+      "avg_family_size"
+    ],
+    "arima": {
+      "forecast_horizon_years": 3,
+      "auto_order_selection": true,
+      "seasonal": false,
+      "fallback_order": [
+        1,
+        1,
+        1
+      ]
+    },
+    "ml": {
+      "validation_method": "kfold",
+      "active_models": [
+        "xgboost",
+        "ridge",
+        "random_forest"
+      ],
+      "min_train_size": 5,
+      "random_state": 42,
+      "cv_folds": 5,
+      "tuning": {
+        "ridge": {
+          "ridge__alpha": [
+            0.1,
+            1.0,
+            10.0,
+            100.0,
+            1000.0
+          ]
+        },
+        "random_forest": {
+          "max_depth": [
+            2,
+            4
+          ],
+          "min_samples_leaf": [
+            2,
+            4
+          ]
+        },
+        "xgboost": {
+          "max_depth": [
+            1,
+            2
+          ],
+          "reg_lambda": [
+            1.0,
+            10.0
+          ]
+        }
+      },
+      "selection_metric": "rmse",
+      "hyperparameters": {
+        "xgboost": {
+          "n_estimators": 300,
+          "max_depth": 4,
+          "learning_rate": 0.05,
+          "subsample": 0.8,
+          "colsample_bytree": 0.8,
+          "random_state": 42
+        },
+        "ridge": {
+          "alpha": 1.0,
+          "random_state": 42
+        },
+        "random_forest": {
+          "n_estimators": 300,
+          "max_depth": 6,
+          "min_samples_leaf": 2,
+          "random_state": 42
+        }
+      }
+    }
+  },
+  "actual_years": [
+    1997,
+    2000,
+    2003,
+    2006,
+    2009,
+    2012,
+    2015,
+    2018,
+    2021
+  ],
+  "actual_rows": 9,
+  "interpolated_rows": 16,
+  "folds": [
+    {
+      "cutoff": 2009,
+      "test_years": [
+        2012
+      ],
+      "actual_train_rows": 5,
+      "annual_train_rows": 13,
+      "indicator_methods": {
+        "avg_household_income": "drift",
+        "avg_household_expenditure": "drift",
+        "avg_family_size": "last_value"
+      }
+    },
+    {
+      "cutoff": 2012,
+      "test_years": [
+        2015
+      ],
+      "actual_train_rows": 6,
+      "annual_train_rows": 16,
+      "indicator_methods": {
+        "avg_household_income": "drift",
+        "avg_household_expenditure": "drift",
+        "avg_family_size": "last_value"
+      }
+    },
+    {
+      "cutoff": 2015,
+      "test_years": [
+        2018
+      ],
+      "actual_train_rows": 7,
+      "annual_train_rows": 19,
+      "indicator_methods": {
+        "avg_household_income": "drift",
+        "avg_household_expenditure": "drift",
+        "avg_family_size": "last_value"
+      }
+    },
+    {
+      "cutoff": 2018,
+      "test_years": [
+        2021
+      ],
+      "actual_train_rows": 8,
+      "annual_train_rows": 22,
+      "indicator_methods": {
+        "avg_household_income": "drift",
+        "avg_household_expenditure": "drift",
+        "avg_family_size": "last_value"
+      }
+    }
+  ],
+  "scores": {
+    "poverty_drift": {
+      "rmse": 0.9798519023642774,
+      "mae": 0.9480952380952381,
+      "r2": -2.339512175884847,
+      "actual_test_points": 4
+    },
+    "poverty_last_value": {
+      "rmse": 0.8185352771872451,
+      "mae": 0.65,
+      "r2": -1.330434782608696,
+      "actual_test_points": 4
+    },
+    "random_forest/arima": {
+      "rmse": 0.6555134005294388,
+      "mae": 0.4487924622445473,
+      "r2": -0.49460110703884697,
+      "actual_test_points": 4
+    },
+    "random_forest/past_selected": {
+      "rmse": 0.6556815064632164,
+      "mae": 0.45199755483713977,
+      "r2": -0.49536778406216686,
+      "actual_test_points": 4
+    },
+    "ridge/arima": {
+      "rmse": 0.9917008427003333,
+      "mae": 0.7176071224150988,
+      "r2": -2.4207671701306133,
+      "actual_test_points": 4
+    },
+    "ridge/past_selected": {
+      "rmse": 0.9946294717528473,
+      "mae": 0.8025561784953834,
+      "r2": -2.441000995058603,
+      "actual_test_points": 4
+    },
+    "xgboost/arima": {
+      "rmse": 0.7909862024401864,
+      "mae": 0.6210943937301636,
+      "r2": -1.1762058172199912,
+      "actual_test_points": 4
+    },
+    "xgboost/past_selected": {
+      "rmse": 0.8101352897874712,
+      "mae": 0.642245638370514,
+      "r2": -1.2828493487270611,
+      "actual_test_points": 4
+    }
+  },
+  "indicator_scores": {
+    "avg_family_size": {
+      "arima": {
+        "rmse": 0.24990337466990492,
+        "mae": 0.23158158069512158,
+        "r2": -1.8044545235546177
+      },
+      "drift": {
+        "rmse": 0.2458175320645272,
+        "mae": 0.23870238095238117,
+        "r2": -1.7135002669792816
+      },
+      "last_value": {
+        "rmse": 0.2407280623442146,
+        "mae": 0.2300000000000002,
+        "r2": -1.6023014313780557
+      }
+    },
+    "avg_household_expenditure": {
+      "arima": {
+        "rmse": 15041.513806959985,
+        "mae": 13855.991554887209,
+        "r2": 0.3968174115152826
+      },
+      "drift": {
+        "rmse": 15041.510198359334,
+        "mae": 13855.997994047615,
+        "r2": 0.3968177009336016
+      },
+      "last_value": {
+        "rmse": 19769.74258836657,
+        "mae": 18268.7225,
+        "r2": -0.042000032567015344
+      }
+    },
+    "avg_household_income": {
+      "arima": {
+        "rmse": 14543.401135438946,
+        "mae": 12499.760980395811,
+        "r2": 0.6638326728909695
+      },
+      "drift": {
+        "rmse": 11612.738376955858,
+        "mae": 10475.130428571436,
+        "r2": 0.7856651363612354
+      },
+      "last_value": {
+        "rmse": 19328.364190706234,
+        "mae": 16914.677499999998,
+        "r2": 0.40623617414043245
+      }
+    }
+  },
+  "best_ml": "random_forest/arima",
+  "best_overall": "random_forest/arima",
+  "prediction_details": [
+    {
+      "candidate": "xgboost/arima",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.410003185272217,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/arima",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.081713288099754,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/arima",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.958794179894183,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "xgboost/past_selected",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.410003185272217,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/past_selected",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.0817123592550097,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/past_selected",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.958794179894183,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "poverty_last_value",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 2.4
+    },
+    {
+      "candidate": "poverty_drift",
+      "cutoff": 2009,
+      "year": 2012,
+      "actual": 2.6,
+      "predicted": 1.7999999999999998
+    },
+    {
+      "candidate": "xgboost/arima",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.6402170658111572,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/arima",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.8158234493376666,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/arima",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.7720243386243366,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "xgboost/past_selected",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.5941758155822754,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/past_selected",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.1869301222376967,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/past_selected",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.7592039682539666,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "poverty_last_value",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.6
+    },
+    {
+      "candidate": "poverty_drift",
+      "cutoff": 2012,
+      "year": 2015,
+      "actual": 2.8,
+      "predicted": 2.16
+    },
+    {
+      "candidate": "xgboost/arima",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 2.7525649070739746,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/arima",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 1.8841200269875429,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/arima",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 2.650771170804505,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "xgboost/past_selected",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 2.791128635406494,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/past_selected",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 1.680542965781687,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/past_selected",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 2.650771170804505,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "poverty_last_value",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 2.8
+    },
+    {
+      "candidate": "poverty_drift",
+      "cutoff": 2015,
+      "year": 2018,
+      "actual": 1.4,
+      "predicted": 2.4666666666666663
+    },
+    {
+      "candidate": "xgboost/arima",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 1.4179670810699463,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/arima",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 0.3478016985650605,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/arima",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 2.042371163096162,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "xgboost/past_selected",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 1.4179670810699463,
+      "parameters": {
+        "max_depth": 2,
+        "reg_lambda": 1.0
+      }
+    },
+    {
+      "candidate": "ridge/past_selected",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 0.40167577030744717,
+      "parameters": {
+        "ridge__alpha": 0.1
+      }
+    },
+    {
+      "candidate": "random_forest/past_selected",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 2.042371163096162,
+      "parameters": {
+        "max_depth": 2,
+        "min_samples_leaf": 2
+      }
+    },
+    {
+      "candidate": "poverty_last_value",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 1.4
+    },
+    {
+      "candidate": "poverty_drift",
+      "cutoff": 2018,
+      "year": 2021,
+      "actual": 2.2,
+      "predicted": 0.9142857142857141
+    }
+  ],
+  "indicator_details": [
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_household_income",
+      "method": "last_value",
+      "actual": 115558.44,
+      "predicted": 113644.38
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_household_income",
+      "method": "drift",
+      "actual": 115558.44,
+      "predicted": 123350.24500000001
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_household_income",
+      "method": "arima",
+      "actual": 115558.44,
+      "predicted": 123350.2410944707
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_household_expenditure",
+      "method": "last_value",
+      "actual": 129411.07,
+      "predicted": 113759.52
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_household_expenditure",
+      "method": "drift",
+      "actual": 129411.07,
+      "predicted": 123063.1775
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_household_expenditure",
+      "method": "arima",
+      "actual": 129411.07,
+      "predicted": 123063.17780654304
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_family_size",
+      "method": "last_value",
+      "actual": 6.87,
+      "predicted": 7.11
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_family_size",
+      "method": "drift",
+      "actual": 6.87,
+      "predicted": 7.140000000000001
+    },
+    {
+      "cutoff": 2009,
+      "year": 2012,
+      "feature": "avg_family_size",
+      "method": "arima",
+      "actual": 6.87,
+      "predicted": 7.11
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_household_income",
+      "method": "last_value",
+      "actual": 138587.33,
+      "predicted": 115558.44
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_household_income",
+      "method": "drift",
+      "actual": 138587.33,
+      "predicted": 123705.944
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_household_income",
+      "method": "arima",
+      "actual": 138587.33,
+      "predicted": 115607.45413521343
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_household_expenditure",
+      "method": "last_value",
+      "actual": 151210.22,
+      "predicted": 129411.07
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_household_expenditure",
+      "method": "drift",
+      "actual": 151210.22,
+      "predicted": 139984.306
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_household_expenditure",
+      "method": "arima",
+      "actual": 151210.22,
+      "predicted": 139984.37599319493
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_family_size",
+      "method": "last_value",
+      "actual": 6.68,
+      "predicted": 6.87
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_family_size",
+      "method": "drift",
+      "actual": 6.68,
+      "predicted": 6.846
+    },
+    {
+      "cutoff": 2012,
+      "year": 2015,
+      "feature": "avg_family_size",
+      "method": "arima",
+      "actual": 6.68,
+      "predicted": 6.77573505897176
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_household_income",
+      "method": "last_value",
+      "actual": 164845.78,
+      "predicted": 138587.33
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_household_income",
+      "method": "drift",
+      "actual": 164845.78,
+      "predicted": 149215.06499999997
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_household_income",
+      "method": "arima",
+      "actual": 164845.78,
+      "predicted": 149215.06290016824
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_household_expenditure",
+      "method": "last_value",
+      "actual": 179236.41,
+      "predicted": 151210.22
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_household_expenditure",
+      "method": "drift",
+      "actual": 179236.41,
+      "predicted": 163654.44166666668
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_household_expenditure",
+      "method": "arima",
+      "actual": 179236.41,
+      "predicted": 163654.44359597814
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_family_size",
+      "method": "last_value",
+      "actual": 6.83,
+      "predicted": 6.68
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_family_size",
+      "method": "drift",
+      "actual": 6.83,
+      "predicted": 6.628333333333333
+    },
+    {
+      "cutoff": 2015,
+      "year": 2018,
+      "feature": "avg_family_size",
+      "method": "arima",
+      "actual": 6.83,
+      "predicted": 6.600440829537165
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_household_income",
+      "method": "last_value",
+      "actual": 181303.09,
+      "predicted": 164845.78
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_household_income",
+      "method": "drift",
+      "actual": 181303.09,
+      "predicted": 177706.47428571427
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_household_income",
+      "method": "arima",
+      "actual": 181303.09,
+      "predicted": 177706.44013750576
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_household_expenditure",
+      "method": "last_value",
+      "actual": 171638.41,
+      "predicted": 179236.41
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_household_expenditure",
+      "method": "drift",
+      "actual": 171638.41,
+      "predicted": 193906.62714285715
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_household_expenditure",
+      "method": "arima",
+      "actual": 171638.41,
+      "predicted": 193906.67361526494
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_family_size",
+      "method": "last_value",
+      "actual": 6.49,
+      "predicted": 6.83
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_family_size",
+      "method": "drift",
+      "actual": 6.49,
+      "predicted": 6.807142857142857
+    },
+    {
+      "cutoff": 2018,
+      "year": 2021,
+      "feature": "avg_family_size",
+      "method": "arima",
+      "actual": 6.49,
+      "predicted": 6.851032093345891
+    }
+  ],
+  "preview": [
+    {
+      "year": 2022,
+      "prediction": 1.9438041597291602,
+      "historical_error_low": 0.6930329889246551,
+      "historical_error_high": 3.1945753305336653
+    },
+    {
+      "year": 2023,
+      "prediction": 1.9438041597291602,
+      "historical_error_low": 0.6930329889246551,
+      "historical_error_high": 3.1945753305336653
+    },
+    {
+      "year": 2024,
+      "prediction": 1.9438041597291602,
+      "historical_error_low": 0.6930329889246551,
+      "historical_error_high": 3.1945753305336653
+    }
+  ],
+  "preview_parameters": {
+    "max_depth": 2,
+    "min_samples_leaf": 2
+  },
+  "preview_inputs": [
+    {
+      "avg_household_income": 185739.85,
+      "avg_household_expenditure": 171638.41,
+      "avg_family_size": 6.42,
+      "year": 2022
+    },
+    {
+      "avg_household_income": 190176.6,
+      "avg_household_expenditure": 171638.41,
+      "avg_family_size": 6.38,
+      "year": 2023
+    },
+    {
+      "avg_household_income": 194613.36,
+      "avg_household_expenditure": 171638.41,
+      "avg_family_size": 6.35,
+      "year": 2024
+    }
+  ],
+  "notes": [
+    "This test did not change the active K-fold configuration or promote any model.",
+    "Only observed FIES poverty targets are scored. Every fold interpolates from its past anchors only.",
+    "ARIMA is the existing automatic specification search; past_selected compares ARIMA, last value and drift using earlier observed years.",
+    "Candidate scores use nested chronological tuning; the current production K-fold score is not directly comparable.",
+    "The winning candidate is selected on these few outer test points; its reported score is not an independent final holdout.",
+    "The historical-error range uses the largest observed end-to-end error; it is descriptive, NOT a calibrated prediction interval.",
+    "No actual one-year or two-year target coverage means accuracy at those horizons remains unknown.",
+    "Survey definitions, threshold methodology, family weights and family-versus-population incidence require source-document verification.",
+    "Threshold decreases occur in [2006]; verify source vintage/methodology rather than correcting automatically."
+  ],
+  "protected_state_unchanged": true
+}
